@@ -52,6 +52,11 @@ const DB = (() => {
     return await client.functions.invoke("manga-meta", { body: { title, author } });
   }
 
-  return { init, getClient, listSeries, insertSeries, updateSeries, deleteSeries, fetchSynopsis };
+  async function fetchCover(body) {
+    if (!client) return { error: { message: "未接続" } };
+    return await client.functions.invoke("book-cover", { body });
+  }
+
+  return { init, getClient, listSeries, insertSeries, updateSeries, deleteSeries, fetchSynopsis, fetchCover };
 })();
 window.DB = DB;
