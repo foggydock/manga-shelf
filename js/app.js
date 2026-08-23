@@ -17,6 +17,7 @@ const App = (() => {
     el("editForm").addEventListener("submit", onEditSubmit);
     el("editCancelBtn").addEventListener("click", closeEditModal);
     el("deleteBtn").addEventListener("click", onDeleteClick);
+    el("genSynopsisBtn").addEventListener("click", onGenSynopsisClick);
 
     await load();
   }
@@ -139,6 +140,26 @@ const App = (() => {
     closeEditModal();
     Util.showBanner("保存しました", "success");
     await load();
+  }
+
+  async function onGenSynopsisClick() {
+    const title = el("editTitle").value.trim();
+    if (!title) { Util.showBanner("タイトルを先に入力してください", "error"); return; }
+    const btn = el("genSynopsisBtn");
+    btn.disabled = true;
+    btn.textContent = "生成中...";
+    const author = el("editAuthor").value.trim();
+    const { data, error } = await DB.fetchSynopsis(title, author);
+    btn.disabled = false;
+    btn.textContent = "✨ AIで生成";
+    if (error || !data?.ok) {
+      Util.showBanner(`生成に失敗しました: ${error?.message || data?.error || "不明なエラー"}`, "error");
+      return;
+    }
+    if (data.synopsis) el("editSynopsis").value = data.synopsis;
+    if (data.author && !author) el("editAuthor").value = data.author;
+    if (data.status && !el("editStatus").value.trim()) el("editStatus").value = data.status;
+    Util.showBanner("あらすじを生成しました", "success");
   }
 
   async function onDeleteClick() {
