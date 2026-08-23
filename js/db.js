@@ -47,6 +47,11 @@ const DB = (() => {
     return { error };
   }
 
-  return { init, getClient, listSeries, insertSeries, updateSeries, deleteSeries };
+  async function fetchSynopsis(title, author) {
+    if (!client) return { error: { message: "未接続" } };
+    return await client.functions.invoke("manga-meta", { body: { title, author } });
+  }
+
+  return { init, getClient, listSeries, insertSeries, updateSeries, deleteSeries, fetchSynopsis };
 })();
 window.DB = DB;
