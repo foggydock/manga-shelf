@@ -11,6 +11,7 @@ const App = (() => {
     el("loginBtn").addEventListener("click", openLoginModal);
     el("logoutBtn").addEventListener("click", async () => { await Auth.signOut(); render(); });
     el("addBtn").addEventListener("click", () => openEditModal(null));
+    el("fetchCoversBtn").addEventListener("click", onFetchCoversClick);
     el("searchInput").addEventListener("input", render);
     el("loginForm").addEventListener("submit", onLoginSubmit);
     el("loginCancelBtn").addEventListener("click", closeLoginModal);
@@ -32,6 +33,7 @@ const App = (() => {
     el("loginBtn").style.display = loggedIn ? "none" : "inline-block";
     el("logoutBtn").style.display = loggedIn ? "inline-block" : "none";
     el("addBtn").style.display = loggedIn ? "inline-block" : "none";
+    el("fetchCoversBtn").style.display = loggedIn ? "inline-block" : "none";
 
     const q = (el("searchInput").value || "").toLowerCase();
     const filtered = seriesList.filter(s =>
@@ -139,6 +141,11 @@ const App = (() => {
     if (error) { Util.showBanner(`保存エラー: ${error.message}`, "error"); return; }
     closeEditModal();
     Util.showBanner("保存しました", "success");
+    await load();
+  }
+
+  async function onFetchCoversClick() {
+    await Covers.runBatch(seriesList, () => {});
     await load();
   }
 
