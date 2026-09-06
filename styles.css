@@ -36,6 +36,7 @@ header {
 header h1 { margin: 0; font-size: 1.3rem; }
 
 .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.logged-in-as { color: var(--text-dim); font-size: 0.85em; }
 
 input, textarea {
   background: var(--card-bg);
