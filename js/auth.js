@@ -34,8 +34,9 @@ const Auth = (() => {
   }
 
   function getUserId() { return currentSession?.user?.id || null; }
+  function getUserEmail() { return currentSession?.user?.email || null; }
   function isLoggedIn() { return !!currentSession; }
 
-  return { refreshSession, signInWithPassword, signOut, onChange, getUserId, isLoggedIn };
+  return { refreshSession, signInWithPassword, signOut, onChange, getUserId, getUserEmail, isLoggedIn };
 })();
 window.Auth = Auth;

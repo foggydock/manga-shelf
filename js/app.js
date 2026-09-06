@@ -34,6 +34,8 @@ const App = (() => {
     el("logoutBtn").style.display = loggedIn ? "inline-block" : "none";
     el("addBtn").style.display = loggedIn ? "inline-block" : "none";
     el("fetchCoversBtn").style.display = loggedIn ? "inline-block" : "none";
+    el("loggedInAs").style.display = loggedIn ? "inline-block" : "none";
+    el("loggedInAs").textContent = loggedIn ? Auth.getUserEmail() : "";
 
     const q = (el("searchInput").value || "").toLowerCase();
     const filtered = seriesList.filter(s =>
