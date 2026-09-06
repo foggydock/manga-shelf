@@ -9,7 +9,7 @@ const App = (() => {
     await Auth.refreshSession();
     Auth.onChange(() => render());
     el("loginBtn").addEventListener("click", openLoginModal);
-    el("logoutBtn").addEventListener("click", async () => { await Auth.signOut(); render(); });
+    el("logoutBtn").addEventListener("click", async () => { await Auth.signOut(); await load(); });
     el("addBtn").addEventListener("click", () => openEditModal(null));
     el("fetchCoversBtn").addEventListener("click", onFetchCoversClick);
     el("searchInput").addEventListener("input", render);
@@ -62,7 +62,7 @@ const App = (() => {
     card.innerHTML = `
       <div class="card-cover">
         ${s.cover_url
-          ? `<img src="${Util.escapeHtml(s.cover_url)}" alt="">`
+          ? `<img class="cover-img" alt="">`
           : `<div class="cover-placeholder">📖</div>`}
       </div>
       <div class="card-body">
@@ -80,6 +80,10 @@ const App = (() => {
     if (loggedIn) {
       card.querySelector(".edit-link").addEventListener("click", () => openEditModal(s));
     }
+    if (s.cover_url) {
+      const img = card.querySelector(".cover-img");
+      Covers.resolveUrl(s.cover_url).then((url) => { if (url) img.src = url; });
+    }
     return card;
   }
 
@@ -95,7 +99,7 @@ const App = (() => {
     if (error) { Util.showBanner(`ログイン失敗: ${error.message}`, "error"); return; }
     closeLoginModal();
     Util.showBanner("ログインしました", "success");
-    render();
+    await load();
   }
 
   // --- 追加・編集 ---

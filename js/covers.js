@@ -43,6 +43,18 @@ const Covers = (() => {
     return { url: `${data.publicUrl}?v=${Date.now()}` };
   }
 
+  // manga-shelf-covers に置いた自前バケットの画像は非公開なので、表示のたびに署名付きURLへ差し替える。
+  // Amazon等の外部URLはそのまま返す。
+  async function resolveUrl(url) {
+    if (!url || !url.includes(`/storage/v1/object/public/${BUCKET}/`)) return url;
+    const client = DB.getClient();
+    if (!client) return url;
+    const path = url.split(`/storage/v1/object/public/${BUCKET}/`)[1].split("?")[0];
+    const { data, error } = await client.storage.from(BUCKET).createSignedUrl(path, 3600);
+    if (error || !data) return null;
+    return data.signedUrl;
+  }
+
   async function fetchOne(series) {
     const res = await DB.fetchCover({ title: series.title, author: series.author });
     const d = res && res.data;
@@ -108,6 +120,6 @@ const Covers = (() => {
     return { ok, ambiguous, missed };
   }
 
-  return { runBatch, fetchOne };
+  return { runBatch, fetchOne, resolveUrl };
 })();
 window.Covers = Covers;
