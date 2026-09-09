@@ -1,4 +1,4 @@
-// タイトル（＋作者）から Gemini であらすじ・ステータス・書影候補URLを生成する。
+// タイトル（＋作者）から編集用の作品情報候補を生成する。書影はbook-coverから取得。
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
@@ -13,6 +13,7 @@ async function callGemini(prompt: string, schema: Record<string, unknown>) {
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(45000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -41,6 +42,7 @@ async function generateSynopsis(title: string, author?: string) {
       synopsis: { type: "string" },
       author: { type: "string" },
       status: { type: "string" },
+      total_volumes: { type: "integer", nullable: true },
     },
     required: ["synopsis"],
   };
@@ -48,6 +50,7 @@ async function generateSynopsis(title: string, author?: string) {
     `次の漫画作品について、日本語で紹介文（あらすじ・見どころ）を150字程度で書いてください。` +
     `誰かにおすすめするときにそのまま使える文体にしてください。` +
     `わかれば作者名（author）と連載状況（status。「完結」「連載中」のいずれか）も返してください。不明なら空文字にしてください。\n` +
+    `完結済みで最終巻数を確実に知っている場合だけtotal_volumesに正の整数を返し、それ以外はnullにしてください。既刊数と最終巻数を混同しないでください。架空・不明な作品の情報は作らず空文字にしてください。\n` +
     `タイトル: ${title}\n作者（既知なら）: ${author || "不明"}`;
   return await callGemini(prompt, schema);
 }
@@ -71,6 +74,9 @@ Deno.serve(async (req: Request) => {
         headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
+    const total = result.total_volumes;
+    result.total_volumes = result.status === "完結" && Number.isSafeInteger(total) && total > 0
+      ? total : null;
     return new Response(JSON.stringify({ ok: true, ...result }), {
       headers: { ...CORS, "Content-Type": "application/json" },
     });

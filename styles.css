@@ -148,3 +148,13 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; }
   header { flex-direction: column; align-items: stretch; }
   .header-actions { justify-content: space-between; }
 }
+
+button:disabled { opacity: 0.55; cursor: wait; }
+.metadata-help, .edit-message { margin: 0; font-size: 0.82rem; line-height: 1.6; }
+.metadata-help { color: var(--text-dim); }
+.edit-message { white-space: pre-line; overflow-wrap: anywhere; }
+.edit-message.error { color: var(--danger); }
+.cover-candidate { border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.cover-candidate img { display: block; max-width: 140px; max-height: 200px; object-fit: contain; }
+.cover-candidate p { font-size: 0.82rem; overflow-wrap: anywhere; }
+#editForm .cover-choice { flex-direction: row; align-items: center; }

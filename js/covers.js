@@ -55,6 +55,16 @@ const Covers = (() => {
     return data.signedUrl;
   }
 
+  // 編集用候補は保存ボタンを押すまでStorageへ書き込まない。
+  async function prepareCandidate(title, author) {
+    const { data, error } = await DB.fetchCover({ title, author });
+    if (error || !data?.ok || !data.b64) {
+      throw new Error(error?.message || data?.error || "書影が見つかりませんでした");
+    }
+    const blob = await shrink(b64ToBlob(data.b64, data.mime));
+    return { blob, matched_title: data.matched_title || title, isbn: data.isbn || "" };
+  }
+
   async function fetchOne(series) {
     const res = await DB.fetchCover({ title: series.title, author: series.author });
     const d = res && res.data;
@@ -120,6 +130,6 @@ const Covers = (() => {
     return { ok, ambiguous, missed };
   }
 
-  return { runBatch, fetchOne, resolveUrl };
+  return { runBatch, fetchOne, resolveUrl, prepareCandidate, upload };
 })();
 window.Covers = Covers;

@@ -51,6 +51,14 @@
     <h2 id="editModalTitle">新規登録</h2>
     <form id="editForm">
       <label>タイトル<input id="editTitle" type="text" required></label>
+      <button type="button" id="fetchMetadataBtn">✨ 作品情報をまとめて取得</button>
+      <p class="metadata-help">空欄に情報の候補を入れます。内容を確認して「保存」を押してください。</p>
+      <p id="editMessage" class="edit-message" role="status" aria-live="polite" hidden></p>
+      <div id="coverCandidate" class="cover-candidate" hidden>
+        <img id="coverCandidateImage" alt="取得した書影の候補">
+        <p id="coverCandidateTitle"></p>
+        <label class="cover-choice"><input id="useCoverCandidate" type="checkbox">この書影を使う</label>
+      </div>
       <label>作者<input id="editAuthor" type="text"></label>
       <label>表紙画像URL<input id="editCoverUrl" type="text" placeholder="https://..."></label>
       <label>ステータス<input id="editStatus" type="text" placeholder="連載中 / 完結 など"></label>
@@ -59,7 +67,6 @@
       <label>既読巻（例: 1-5,7,9-10）<input id="editRead" type="text"></label>
       <label>紹介文・あらすじ
         <textarea id="editSynopsis" rows="4"></textarea>
-        <button type="button" id="genSynopsisBtn" style="align-self:flex-start;margin-top:4px;">✨ AIで生成</button>
       </label>
       <div class="modal-actions">
         <button type="button" id="deleteBtn" class="danger" style="display:none">削除</button>
