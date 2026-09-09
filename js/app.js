@@ -1,6 +1,34 @@
 const App = (() => {
   let seriesList = [];
   let editingId = null;
+  let editVersion = 0;
+  let candidate = null;
+  let candidateUrl = null;
+  let saving = false;
+  let newSeriesId = null;
+
+  function editMessage(text, error = false) {
+    el("editMessage").textContent = text;
+    el("editMessage").className = "edit-message" + (error ? " error" : "");
+    el("editMessage").hidden = !text;
+  }
+
+  function clearCandidate() {
+    if (candidateUrl) URL.revokeObjectURL(candidateUrl);
+    candidateUrl = null;
+    candidate = null;
+    el("coverCandidateImage").removeAttribute("src");
+    el("coverCandidate").hidden = true;
+    el("useCoverCandidate").checked = false;
+  }
+
+  function resetFetch() {
+    editVersion++;
+    clearCandidate();
+    el("fetchMetadataBtn").disabled = false;
+    el("fetchMetadataBtn").textContent = "✨ 作品情報をまとめて取得";
+    editMessage("");
+  }
 
   function el(id) { return document.getElementById(id); }
 
@@ -18,7 +46,9 @@ const App = (() => {
     el("editForm").addEventListener("submit", onEditSubmit);
     el("editCancelBtn").addEventListener("click", closeEditModal);
     el("deleteBtn").addEventListener("click", onDeleteClick);
-    el("genSynopsisBtn").addEventListener("click", onGenSynopsisClick);
+    el("fetchMetadataBtn").addEventListener("click", onFetchMetadataClick);
+    el("editTitle").addEventListener("input", resetFetch);
+    el("editAuthor").addEventListener("input", resetFetch);
 
     await load();
   }
@@ -106,6 +136,8 @@ const App = (() => {
 
   // --- 追加・編集 ---
   function openEditModal(s) {
+    resetFetch();
+    newSeriesId = null;
     editingId = s ? s.id : null;
     el("editModalTitle").textContent = s ? "編集" : "新規登録";
     el("editTitle").value = s?.title || "";
@@ -121,6 +153,8 @@ const App = (() => {
   }
 
   function closeEditModal() {
+    if (saving) return;
+    resetFetch();
     el("editModal").style.display = "none";
     el("editForm").reset();
     editingId = null;
@@ -138,16 +172,37 @@ const App = (() => {
       read_volumes: Util.parseRange(el("editRead").value),
       synopsis: el("editSynopsis").value.trim() || null,
     };
-    if (!fields.title) { Util.showBanner("タイトルは必須です", "error"); return; }
-
-    const { error } = editingId
-      ? await DB.updateSeries(editingId, fields)
-      : await DB.insertSeries(fields);
-
-    if (error) { Util.showBanner(`保存エラー: ${error.message}`, "error"); return; }
-    closeEditModal();
-    Util.showBanner("保存しました", "success");
-    await load();
+    if (saving) return;
+    if (!fields.title) { editMessage("タイトルは必須です", true); return; }
+    saving = true;
+    editVersion++; // 取得中の結果が保存後に別の編集画面へ入らないようにする。
+    const controls = Array.from(el("editForm").querySelectorAll("input, textarea, button"));
+    controls.forEach(control => { control.disabled = true; });
+    try {
+      const id = editingId || (newSeriesId ||= crypto.randomUUID());
+      if (!fields.cover_url && candidate && el("useCoverCandidate").checked) {
+        editMessage("書影を保存しています…");
+        const uploaded = await Covers.upload(id, candidate.blob);
+        if (uploaded.error) throw new Error(`書影の保存に失敗しました: ${uploaded.error.message}`);
+        fields.cover_url = uploaded.url;
+        // DB保存に失敗しても、再試行時に同じ画像を使えるようにする。
+        el("editCoverUrl").value = uploaded.url;
+      }
+      const { error } = editingId
+        ? await DB.updateSeries(editingId, fields)
+        : await DB.insertSeries({ ...fields, id });
+      if (error) throw new Error(error.message);
+      saving = false;
+      closeEditModal();
+      Util.showBanner("保存しました", "success");
+      await load();
+    } catch (error) {
+      editMessage(`保存エラー: ${error.message}`, true);
+    } finally {
+      saving = false;
+      controls.forEach(control => { control.disabled = false; });
+      el("fetchMetadataBtn").textContent = "✨ 作品情報をまとめて取得";
+    }
   }
 
   async function onFetchCoversClick() {
@@ -155,24 +210,76 @@ const App = (() => {
     await load();
   }
 
-  async function onGenSynopsisClick() {
-    const title = el("editTitle").value.trim();
-    if (!title) { Util.showBanner("タイトルを先に入力してください", "error"); return; }
-    const btn = el("genSynopsisBtn");
-    btn.disabled = true;
-    btn.textContent = "生成中...";
-    const author = el("editAuthor").value.trim();
-    const { data, error } = await DB.fetchSynopsis(title, author);
-    btn.disabled = false;
-    btn.textContent = "✨ AIで生成";
-    if (error || !data?.ok) {
-      Util.showBanner(`生成に失敗しました: ${error?.message || data?.error || "不明なエラー"}`, "error");
-      return;
+  async function withTimeout(task) {
+    let timer;
+    try {
+      return await Promise.race([
+        task(),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("取得に時間がかかっています。再試行してください")), 60000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
     }
-    if (data.synopsis) el("editSynopsis").value = data.synopsis;
-    if (data.author && !author) el("editAuthor").value = data.author;
-    if (data.status && !el("editStatus").value.trim()) el("editStatus").value = data.status;
-    Util.showBanner("あらすじを生成しました", "success");
+  }
+
+  async function onFetchMetadataClick() {
+    const title = el("editTitle").value.trim();
+    const author = el("editAuthor").value.trim();
+    if (!title) { editMessage("タイトルを先に入力してください", true); return; }
+    const version = ++editVersion;
+    const btn = el("fetchMetadataBtn");
+    btn.disabled = true;
+    btn.textContent = "取得中…";
+    editMessage("作品情報と書影を探しています…");
+    // 片方が失敗しても、もう片方の候補は利用できる。
+    const [meta, cover] = await Promise.allSettled([
+      withTimeout(() => DB.fetchSynopsis(title, author)),
+      el("editCoverUrl").value.trim() || candidate
+        ? Promise.resolve(null) : withTimeout(() => Covers.prepareCandidate(title, author)),
+    ]);
+    if (version !== editVersion) return;
+    try {
+      const messages = [];
+      const data = meta.status === "fulfilled" ? meta.value?.data : null;
+      const error = meta.status === "fulfilled" ? meta.value?.error : meta.reason;
+      let filled = 0;
+      if (!error && data?.ok) {
+        for (const [id, value] of [
+          ["editAuthor", data.author], ["editSynopsis", data.synopsis],
+          ["editStatus", data.status],
+          ["editTotalVolumes", Number.isSafeInteger(data.total_volumes) && data.total_volumes > 0
+            ? String(data.total_volumes) : null],
+        ]) {
+          if (!el(id).value.trim() && typeof value === "string" && value.trim()) {
+            el(id).value = value.trim();
+            filled++;
+          }
+        }
+        messages.push(filled ? `空欄の${filled}項目に候補を入れました。` : "補完できる空欄の情報はありませんでした。");
+        messages.push("AIの候補です。巻数・完結状況を含め、内容を確認して保存してください。");
+      } else {
+        messages.push(`作品情報を取得できませんでした: ${error?.message || data?.error || "時間をおいて再試行してください"}`);
+      }
+      if (cover.status === "fulfilled" && cover.value && !el("editCoverUrl").value.trim()) {
+        clearCandidate();
+        candidate = cover.value;
+        candidateUrl = URL.createObjectURL(candidate.blob);
+        el("coverCandidateImage").src = candidateUrl;
+        el("coverCandidateTitle").textContent = `${candidate.matched_title}${candidate.isbn ? " / ISBN " + candidate.isbn : ""}`;
+        el("coverCandidate").hidden = false;
+        messages.push("書影の作品名・巻を確認し、使う場合はチェックしてください。");
+      } else if (cover.status === "rejected") {
+        messages.push(`書影を取得できませんでした: ${cover.reason?.message || "再試行してください"}`);
+      }
+      editMessage(messages.join("\n"));
+    } catch (error) {
+      editMessage(`候補の表示に失敗しました: ${error.message}`, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "✨ 作品情報をまとめて取得";
+    }
   }
 
   async function onDeleteClick() {
