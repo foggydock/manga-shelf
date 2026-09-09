@@ -57,7 +57,13 @@ const Covers = (() => {
 
   // 編集用候補は保存ボタンを押すまでStorageへ書き込まない。
   async function prepareCandidate(title, author) {
-    const { data, error } = await DB.fetchCover({ title, author });
+    let result = await DB.fetchCover({ title, author });
+    // シリーズ名だけではNDL上の「作品名 1」に一致しない場合がある。
+    // 第1巻を明示した検索を一度だけ試し、候補名とISBNは画面で確認してもらう。
+    if (result.error || !result.data?.ok || !result.data.b64) {
+      result = await DB.fetchCover({ title: `${title} 1`, author });
+    }
+    const { data, error } = result;
     if (error || !data?.ok || !data.b64) {
       throw new Error(error?.message || data?.error || "書影が見つかりませんでした");
     }
