@@ -51,8 +51,11 @@
     <h2 id="editModalTitle">新規登録</h2>
     <form id="editForm">
       <label>タイトル<input id="editTitle" type="text" required></label>
+      <label>第1巻のISBN（わかる場合）
+        <input id="editIsbn" type="text" inputmode="numeric" autocomplete="off" placeholder="9784091856784">
+      </label>
       <button type="button" id="fetchMetadataBtn">✨ 作品情報をまとめて取得</button>
-      <p class="metadata-help">空欄に情報の候補を入れます。内容を確認して「保存」を押してください。</p>
+      <p class="metadata-help">ISBNがある場合は、その本の書影を優先します。空欄に情報の候補を入れるため、内容を確認して「保存」を押してください。</p>
       <p id="editMessage" class="edit-message" role="status" aria-live="polite" hidden></p>
       <div id="coverCandidate" class="cover-candidate" hidden>
         <img id="coverCandidateImage" alt="取得した書影の候補">

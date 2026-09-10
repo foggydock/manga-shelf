@@ -56,11 +56,15 @@ const Covers = (() => {
   }
 
   // 編集用候補は保存ボタンを押すまでStorageへ書き込まない。
-  async function prepareCandidate(title, author) {
-    let result = await DB.fetchCover({ title, author });
+  async function prepareCandidate(title, author, isbn = "") {
+    // ISBNが指定された場合はタイトル検索をせず、その版の書影を直接取得する。
+    // シリーズ名が続編や別版に曖昧一致する事故を避けるため、ISBNを常に最優先する。
+    let result = isbn
+      ? await DB.fetchCover({ isbn })
+      : await DB.fetchCover({ title, author });
     // シリーズ名だけではNDL上の「作品名 1」に一致しない場合がある。
     // 第1巻を明示した検索を一度だけ試し、候補名とISBNは画面で確認してもらう。
-    if (result.error || !result.data?.ok || !result.data.b64) {
+    if (!isbn && (result.error || !result.data?.ok || !result.data.b64)) {
       result = await DB.fetchCover({ title: `${title} 1`, author });
     }
     const { data, error } = result;
@@ -68,7 +72,7 @@ const Covers = (() => {
       throw new Error(error?.message || data?.error || "書影が見つかりませんでした");
     }
     const blob = await shrink(b64ToBlob(data.b64, data.mime));
-    return { blob, matched_title: data.matched_title || title, isbn: data.isbn || "" };
+    return { blob, matched_title: data.matched_title || title, isbn: data.isbn || isbn };
   }
 
   async function fetchOne(series) {

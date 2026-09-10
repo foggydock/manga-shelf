@@ -49,6 +49,7 @@ const App = (() => {
     el("fetchMetadataBtn").addEventListener("click", onFetchMetadataClick);
     el("editTitle").addEventListener("input", resetFetch);
     el("editAuthor").addEventListener("input", resetFetch);
+    el("editIsbn").addEventListener("input", resetFetch);
 
     await load();
   }
@@ -141,6 +142,7 @@ const App = (() => {
     editingId = s ? s.id : null;
     el("editModalTitle").textContent = s ? "編集" : "新規登録";
     el("editTitle").value = s?.title || "";
+    el("editIsbn").value = "";
     el("editAuthor").value = s?.author || "";
     el("editCoverUrl").value = s?.cover_url || "";
     el("editStatus").value = s?.status || "";
@@ -227,7 +229,12 @@ const App = (() => {
   async function onFetchMetadataClick() {
     const title = el("editTitle").value.trim();
     const author = el("editAuthor").value.trim();
+    const isbn = el("editIsbn").value.replace(/[^0-9Xx]/g, "");
     if (!title) { editMessage("タイトルを先に入力してください", true); return; }
+    if (isbn && isbn.length !== 10 && isbn.length !== 13) {
+      editMessage("ISBNは10桁または13桁で入力してください", true);
+      return;
+    }
     const version = ++editVersion;
     const btn = el("fetchMetadataBtn");
     btn.disabled = true;
@@ -237,7 +244,7 @@ const App = (() => {
     const [meta, cover] = await Promise.allSettled([
       withTimeout(() => DB.fetchSynopsis(title, author)),
       el("editCoverUrl").value.trim() || candidate
-        ? Promise.resolve(null) : withTimeout(() => Covers.prepareCandidate(title, author)),
+        ? Promise.resolve(null) : withTimeout(() => Covers.prepareCandidate(title, author, isbn)),
     ]);
     if (version !== editVersion) return;
     try {
