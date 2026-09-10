@@ -12,6 +12,7 @@ async function setup({ meta, cover, saveError } = {}) {
   const elements = new Map();
   const events = {};
   const writes = [];
+  const coverRequests = [];
   const element = id => {
     if (!elements.has(id)) elements.set(id, {
       value: '', style: {}, hidden: false, checked: false, disabled: false,
@@ -31,7 +32,7 @@ async function setup({ meta, cover, saveError } = {}) {
     document: { getElementById: element },
     window: { addEventListener: (name, fn) => { events[name] = fn; } },
     DB: db, Auth: { refreshSession: async () => {}, onChange() {}, isLoggedIn: () => true, getUserEmail: () => '' },
-    Covers: { prepareCandidate: () => cover || Promise.resolve({ blob: {}, matched_title: '作品 1', isbn: '9784091868923' }), upload: async () => { writes.push(['upload']); return { url: 'https://example.test/cover.jpg' }; } },
+    Covers: { prepareCandidate: (...args) => { coverRequests.push(args); return cover || Promise.resolve({ blob: {}, matched_title: '作品 1', isbn: '9784091868923' }); }, upload: async () => { writes.push(['upload']); return { url: 'https://example.test/cover.jpg' }; } },
     Util: { toRangeString: () => '', parseRange: s => s ? [1] : [], showBanner() {} },
     URL: { createObjectURL: () => 'blob:candidate', revokeObjectURL() {} },
     setTimeout, clearTimeout,
@@ -41,7 +42,7 @@ async function setup({ meta, cover, saveError } = {}) {
   await events.DOMContentLoaded();
   await events['addBtn:click']();
   element('editTitle').value = '作品';
-  return { element, events, writes };
+  return { element, events, writes, coverRequests };
 }
 
 test('fills metadata and previews cover without writing before save', async () => {
@@ -57,6 +58,26 @@ test('fills metadata and previews cover without writing before save', async () =
   assert.equal(writes[0][0], 'upload');
   assert.equal(writes[1][1].cover_url, 'https://example.test/cover.jpg');
   assert.equal(writes[1][1].owned_volumes.length, 0);
+});
+
+test('uses ISBN for the cover lookup without changing the saved series title', async () => {
+  const { element: el, events, writes, coverRequests } = await setup();
+  el('editTitle').value = 'BLUE GIANT';
+  el('editIsbn').value = '978-4-09-185678-4';
+  await events['fetchMetadataBtn:click']();
+  assert.deepEqual(coverRequests[0], ['BLUE GIANT', '', '9784091856784']);
+  assert.equal(el('editTitle').value, 'BLUE GIANT');
+  el('useCoverCandidate').checked = true;
+  await events['editForm:submit']({ preventDefault() {} });
+  assert.equal(writes[1][1].title, 'BLUE GIANT');
+});
+
+test('rejects an invalid ISBN before starting metadata or cover lookup', async () => {
+  const { element: el, events, coverRequests } = await setup();
+  el('editIsbn').value = '1234';
+  await events['fetchMetadataBtn:click']();
+  assert.equal(coverRequests.length, 0);
+  assert.match(el('editMessage').textContent, /10桁または13桁/);
 });
 
 test('preserves manual fields and ownership/read entries', async () => {
