@@ -50,10 +50,18 @@ const Util = (() => {
     return gaps;
   }
 
+  // 1巻から途切れずに続くチェック済み巻数を返す。
+  function consecutiveFromOne(volumes) {
+    const set = new Set(volumes || []);
+    let volume = 1;
+    while (set.has(volume)) volume++;
+    return volume - 1;
+  }
+
   function escapeHtml(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  return { showBanner, parseRange, toRangeString, findGaps, escapeHtml };
+  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, escapeHtml };
 })();
 window.Util = Util;

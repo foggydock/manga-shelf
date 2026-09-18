@@ -18,7 +18,7 @@ async function setup({ meta, cover, saveError } = {}) {
       value: '', style: {}, hidden: false, checked: false, disabled: false,
       textContent: '', addEventListener: (name, fn) => { events[id + ':' + name] = fn; },
       removeAttribute() {}, appendChild() {}, reset() {},
-      querySelectorAll: () => [...elements.values()],
+      querySelectorAll: selector => selector.includes('input[type=checkbox]') ? [] : [...elements.values()],
     });
     return elements.get(id);
   };
@@ -57,7 +57,7 @@ test('fills metadata and previews cover without writing before save', async () =
   await events['editForm:submit']({ preventDefault() {} });
   assert.equal(writes[0][0], 'upload');
   assert.equal(writes[1][1].cover_url, 'https://example.test/cover.jpg');
-  assert.equal(writes[1][1].owned_volumes.length, 0);
+  assert.equal(writes[1][1].checked_volumes.length, 0);
 });
 
 test('uses ISBN for the cover lookup without changing the saved series title', async () => {
@@ -80,16 +80,14 @@ test('rejects an invalid ISBN before starting metadata or cover lookup', async (
   assert.match(el('editMessage').textContent, /10桁または13桁/);
 });
 
-test('preserves manual fields and ownership/read entries', async () => {
+test('preserves manual fields while using one volume-tracking state', async () => {
   const { element: el, events, writes } = await setup();
   el('editAuthor').value = '手入力の作者';
-  el('editOwned').value = '1';
-  el('editRead').value = '1';
+  el('editTrackingKind').value = '買った';
   el('editCoverUrl').value = 'https://example.test/manual.jpg';
   await events['fetchMetadataBtn:click']();
   assert.equal(el('editAuthor').value, '手入力の作者');
-  assert.equal(el('editOwned').value, '1');
-  assert.equal(el('editRead').value, '1');
+  assert.equal(el('editTrackingKind').value, '買った');
   await events['editForm:submit']({ preventDefault() {} });
   assert.equal(writes.length, 1);
   assert.equal(writes[0][1].cover_url, 'https://example.test/manual.jpg');
