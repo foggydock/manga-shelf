@@ -52,6 +52,8 @@ const App = (() => {
     el("editIsbn").addEventListener("input", resetFetch);
     el("editVolumeCount").addEventListener("change", () => renderVolumeChecks());
     el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
+    el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
+    el("clearAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(false));
 
     await load();
   }
@@ -231,6 +233,11 @@ const App = (() => {
     return Array.from(el("volumeChecks").querySelectorAll("input[type=checkbox]:checked"))
       .map(input => parseInt(input.value, 10))
       .filter(Number.isSafeInteger);
+  }
+
+  function setAllVolumeChecks(checked) {
+    el("volumeChecks").querySelectorAll("input[type=checkbox]")
+      .forEach(input => { input.checked = checked; });
   }
 
   async function onFetchCoversClick() {

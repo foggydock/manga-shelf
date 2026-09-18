@@ -13,12 +13,13 @@ async function setup({ meta, cover, saveError } = {}) {
   const events = {};
   const writes = [];
   const coverRequests = [];
+  const volumeInputs = [{ checked: false, value: '1' }, { checked: false, value: '2' }, { checked: false, value: '3' }];
   const element = id => {
     if (!elements.has(id)) elements.set(id, {
       value: '', style: {}, hidden: false, checked: false, disabled: false,
       textContent: '', addEventListener: (name, fn) => { events[id + ':' + name] = fn; },
       removeAttribute() {}, appendChild() {}, reset() {},
-      querySelectorAll: selector => selector.includes('input[type=checkbox]') ? [] : [...elements.values()],
+      querySelectorAll: selector => selector.includes('input[type=checkbox]') ? volumeInputs.filter(input => !selector.includes(':checked') || input.checked) : [...elements.values()],
     });
     return elements.get(id);
   };
@@ -42,7 +43,7 @@ async function setup({ meta, cover, saveError } = {}) {
   await events.DOMContentLoaded();
   await events['addBtn:click']();
   element('editTitle').value = '作品';
-  return { element, events, writes, coverRequests };
+  return { element, events, writes, coverRequests, volumeInputs };
 }
 
 test('fills metadata and previews cover without writing before save', async () => {
@@ -78,6 +79,14 @@ test('rejects an invalid ISBN before starting metadata or cover lookup', async (
   await events['fetchMetadataBtn:click']();
   assert.equal(coverRequests.length, 0);
   assert.match(el('editMessage').textContent, /10桁または13桁/);
+});
+
+test('can check or clear every displayed volume in one action', async () => {
+  const { events, volumeInputs } = await setup();
+  events['checkAllVolumesBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [true, true, true]);
+  events['clearAllVolumesBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, false]);
 });
 
 test('preserves manual fields while using one volume-tracking state', async () => {
