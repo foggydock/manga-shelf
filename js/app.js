@@ -50,6 +50,8 @@ const App = (() => {
     el("editTitle").addEventListener("input", resetFetch);
     el("editAuthor").addEventListener("input", resetFetch);
     el("editIsbn").addEventListener("input", resetFetch);
+    el("editVolumeCount").addEventListener("change", () => renderVolumeChecks());
+    el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
 
     await load();
   }
@@ -71,7 +73,7 @@ const App = (() => {
     const q = (el("searchInput").value || "").toLowerCase();
     const filtered = seriesList.filter(s =>
       !q || (s.title || "").toLowerCase().includes(q) || (s.author || "").toLowerCase().includes(q)
-    );
+    ).sort((a, b) => Util.consecutiveFromOne(progressVolumes(b)) - Util.consecutiveFromOne(progressVolumes(a)) || (a.title || "").localeCompare(b.title || "", "ja"));
 
     const grid = el("grid");
     grid.innerHTML = "";
@@ -84,11 +86,10 @@ const App = (() => {
   }
 
   function renderCard(s, loggedIn) {
-    const owned = s.owned_volumes || [];
-    const read = s.read_volumes || [];
-    const gaps = Util.findGaps(owned);
-    const unread = owned.filter(v => !read.includes(v));
-    const maxOwned = owned.length ? Math.max(...owned) : 0;
+    const volumes = progressVolumes(s);
+    const kind = s.tracking_kind || (s.read_volumes?.length ? "読んだ" : "持っている");
+    const consecutive = Util.consecutiveFromOne(volumes);
+    const maxChecked = volumes.length ? Math.max(...volumes) : 0;
 
     const card = document.createElement("div");
     card.className = "card";
@@ -102,10 +103,9 @@ const App = (() => {
         <h3>${Util.escapeHtml(s.title)}</h3>
         ${s.author ? `<p class="author">${Util.escapeHtml(s.author)}</p>` : ""}
         ${s.status ? `<span class="badge">${Util.escapeHtml(s.status)}</span>` : ""}
-        <div class="vol-row"><span class="vol-label">所持</span><span>${owned.length ? Util.toRangeString(owned) + "巻" : "なし"}${s.total_volumes ? ` / 全${s.total_volumes}巻` : ""}</span></div>
-        <div class="vol-row"><span class="vol-label">既読</span><span>${read.length ? Util.toRangeString(read) + "巻" : "なし"}</span></div>
-        ${gaps.length ? `<div class="vol-row gap"><span class="vol-label">抜け</span><span>${Util.toRangeString(gaps)}巻</span></div>` : ""}
-        ${unread.length ? `<div class="vol-row unread"><span class="vol-label">積読</span><span>${Util.toRangeString(unread)}巻</span></div>` : ""}
+        <div class="progress-summary"><span>${Util.escapeHtml(kind)}</span><strong>1巻から ${consecutive}巻連続</strong></div>
+        <div class="vol-row"><span class="vol-label">チェック済み</span><span>${volumes.length ? Util.toRangeString(volumes) + "巻" : "なし"}${s.total_volumes ? ` / 全${s.total_volumes}巻` : ""}</span></div>
+        ${maxChecked > consecutive ? `<div class="vol-row gap"><span class="vol-label">途中の抜け</span><span>${consecutive + 1}巻</span></div>` : ""}
         ${s.synopsis ? `<p class="synopsis">${Util.escapeHtml(s.synopsis)}</p>` : ""}
         ${loggedIn ? `<button class="edit-link" data-id="${s.id}">編集</button>` : ""}
       </div>
@@ -147,8 +147,10 @@ const App = (() => {
     el("editCoverUrl").value = s?.cover_url || "";
     el("editStatus").value = s?.status || "";
     el("editTotalVolumes").value = s?.total_volumes ?? "";
-    el("editOwned").value = Util.toRangeString(s?.owned_volumes || []);
-    el("editRead").value = Util.toRangeString(s?.read_volumes || []);
+    el("editTrackingKind").value = s?.tracking_kind || (s?.read_volumes?.length ? "読んだ" : "持っている");
+    const checked = progressVolumes(s || {});
+    el("editVolumeCount").value = Math.max(s?.total_volumes || 0, checked.length ? Math.max(...checked) : 0, 10);
+    renderVolumeChecks(checked);
     el("editSynopsis").value = s?.synopsis || "";
     el("deleteBtn").style.display = s ? "inline-block" : "none";
     el("editModal").style.display = "flex";
@@ -170,8 +172,8 @@ const App = (() => {
       cover_url: el("editCoverUrl").value.trim() || null,
       status: el("editStatus").value.trim() || null,
       total_volumes: el("editTotalVolumes").value ? parseInt(el("editTotalVolumes").value, 10) : null,
-      owned_volumes: Util.parseRange(el("editOwned").value),
-      read_volumes: Util.parseRange(el("editRead").value),
+      tracking_kind: el("editTrackingKind").value,
+      checked_volumes: selectedVolumes(),
       synopsis: el("editSynopsis").value.trim() || null,
     };
     if (saving) return;
@@ -205,6 +207,28 @@ const App = (() => {
       controls.forEach(control => { control.disabled = false; });
       el("fetchMetadataBtn").textContent = "✨ 作品情報をまとめて取得";
     }
+  }
+
+  function progressVolumes(s) {
+    return s.checked_volumes || (s.read_volumes?.length ? s.read_volumes : (s.owned_volumes || []));
+  }
+
+  function renderVolumeChecks(checked = selectedVolumes()) {
+    const requested = parseInt(el("editVolumeCount").value, 10) || 1;
+    const total = parseInt(el("editTotalVolumes").value, 10) || 0;
+    const count = Math.max(requested, total, checked.length ? Math.max(...checked) : 0);
+    el("editVolumeCount").value = count;
+    const selected = new Set(checked);
+    el("volumeChecks").innerHTML = Array.from({ length: count }, (_, index) => {
+      const volume = index + 1;
+      return `<label><input type="checkbox" value="${volume}"${selected.has(volume) ? " checked" : ""}>${volume}巻</label>`;
+    }).join("");
+  }
+
+  function selectedVolumes() {
+    return Array.from(el("volumeChecks").querySelectorAll("input[type=checkbox]:checked"))
+      .map(input => parseInt(input.value, 10))
+      .filter(Number.isSafeInteger);
   }
 
   async function onFetchCoversClick() {
@@ -264,6 +288,7 @@ const App = (() => {
             filled++;
           }
         }
+        renderVolumeChecks();
         messages.push(filled ? `空欄の${filled}項目に候補を入れました。` : "補完できる空欄の情報はありませんでした。");
         messages.push("AIの候補です。巻数・完結状況を含め、内容を確認して保存してください。");
       } else {

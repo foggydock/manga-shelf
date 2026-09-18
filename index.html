@@ -66,8 +66,22 @@
       <label>表紙画像URL<input id="editCoverUrl" type="text" placeholder="https://..."></label>
       <label>ステータス<input id="editStatus" type="text" placeholder="連載中 / 完結 など"></label>
       <label>全巻数（既知の場合）<input id="editTotalVolumes" type="number" min="1"></label>
-      <label>所持巻（例: 1-5,7,9-10）<input id="editOwned" type="text"></label>
-      <label>既読巻（例: 1-5,7,9-10）<input id="editRead" type="text"></label>
+      <label>記録すること
+        <select id="editTrackingKind">
+          <option value="読んだ">読んだことがある</option>
+          <option value="買った">買ったことがある</option>
+          <option value="借りた">借りたことがある</option>
+          <option value="持っている">持っている</option>
+        </select>
+      </label>
+      <label>チェック欄を表示する巻数
+        <input id="editVolumeCount" type="number" min="1" value="10">
+      </label>
+      <fieldset class="volume-checks-fieldset">
+        <legend>巻ごとの記録</legend>
+        <p class="metadata-help">該当する巻にチェックを入れてください。続いている作品は、1巻から連続するチェック数が本棚に表示されます。</p>
+        <div id="volumeChecks" class="volume-checks"></div>
+      </fieldset>
       <label>紹介文・あらすじ
         <textarea id="editSynopsis" rows="4"></textarea>
       </label>
