@@ -95,12 +95,13 @@ const App = (() => {
 
     const card = document.createElement("div");
     card.className = "card";
+    const coverTag = loggedIn ? "button" : "div";
     card.innerHTML = `
-      <div class="card-cover">
+      <${coverTag} class="card-cover${loggedIn ? " edit-cover" : ""}"${loggedIn ? ` type="button" aria-label="${Util.escapeHtml(s.title)}を編集"` : ""}>
         ${s.cover_url
           ? `<img class="cover-img" alt="">`
           : `<div class="cover-placeholder">📖</div>`}
-      </div>
+      </${coverTag}>
       <div class="card-body">
         <h3>${Util.escapeHtml(s.title)}</h3>
         ${s.author ? `<p class="author">${Util.escapeHtml(s.author)}</p>` : ""}
@@ -114,6 +115,7 @@ const App = (() => {
     `;
     if (loggedIn) {
       card.querySelector(".edit-link").addEventListener("click", () => openEditModal(s));
+      card.querySelector(".edit-cover").addEventListener("click", () => openEditModal(s));
     }
     if (s.cover_url) {
       const img = card.querySelector(".cover-img");
