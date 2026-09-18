@@ -132,6 +132,8 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; }
 #editForm label, #loginForm label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--text-dim); }
 .volume-checks-fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 0; padding: 10px; }
 .volume-checks-fieldset legend { color: var(--text-dim); font-size: 0.85rem; padding: 0 4px; }
+.volume-check-actions { display: flex; gap: 8px; margin-top: 10px; }
+.volume-check-actions button { padding: 5px 9px; font-size: 0.82rem; }
 .volume-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; margin-top: 10px; }
 #editForm .volume-checks label { flex-direction: row; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
