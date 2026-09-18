@@ -80,6 +80,8 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; }
 }
 
 .card-cover { aspect-ratio: 3 / 4; overflow: hidden; background: #2a2d34; }
+.card-cover.edit-cover { display: block; width: 100%; padding: 0; border: 0; text-align: inherit; color: inherit; cursor: pointer; }
+.card-cover.edit-cover:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .card-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cover-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
 
