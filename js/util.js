@@ -58,10 +58,23 @@ const Util = (() => {
     return volume - 1;
   }
 
+  function validateVolumeFields(fields) {
+    const total = fields.total_volumes;
+    const checked = fields.checked_volumes || [];
+    if (total !== null && (!Number.isSafeInteger(total) || total < 1)) {
+      return "全巻数は1以上の整数で入力してください";
+    }
+    const maxChecked = checked.length ? Math.max(...checked) : 0;
+    if (total !== null && maxChecked > total) {
+      return `チェック済みの${maxChecked}巻は、全${total}巻を超えています`;
+    }
+    return null;
+  }
+
   function escapeHtml(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, escapeHtml };
+  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, validateVolumeFields, escapeHtml };
 })();
 window.Util = Util;

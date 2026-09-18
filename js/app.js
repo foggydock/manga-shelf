@@ -178,6 +178,8 @@ const App = (() => {
     };
     if (saving) return;
     if (!fields.title) { editMessage("タイトルは必須です", true); return; }
+    const volumeError = Util.validateVolumeFields(fields);
+    if (volumeError) { editMessage(volumeError, true); return; }
     saving = true;
     editVersion++; // 取得中の結果が保存後に別の編集画面へ入らないようにする。
     const controls = Array.from(el("editForm").querySelectorAll("input, textarea, button"));

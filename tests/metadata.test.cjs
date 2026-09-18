@@ -33,7 +33,7 @@ async function setup({ meta, cover, saveError } = {}) {
     window: { addEventListener: (name, fn) => { events[name] = fn; } },
     DB: db, Auth: { refreshSession: async () => {}, onChange() {}, isLoggedIn: () => true, getUserEmail: () => '' },
     Covers: { prepareCandidate: (...args) => { coverRequests.push(args); return cover || Promise.resolve({ blob: {}, matched_title: '作品 1', isbn: '9784091868923' }); }, upload: async () => { writes.push(['upload']); return { url: 'https://example.test/cover.jpg' }; } },
-    Util: { toRangeString: () => '', parseRange: s => s ? [1] : [], showBanner() {} },
+    Util: { toRangeString: () => '', parseRange: s => s ? [1] : [], validateVolumeFields: () => null, showBanner() {} },
     URL: { createObjectURL: () => 'blob:candidate', revokeObjectURL() {} },
     setTimeout, clearTimeout,
     crypto: { randomUUID: () => 'new-id' },
