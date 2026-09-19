@@ -40,7 +40,10 @@ const App = (() => {
     el("logoutBtn").addEventListener("click", async () => { await Auth.signOut(); await load(); });
     el("addBtn").addEventListener("click", () => openEditModal(null));
     el("fetchCoversBtn").addEventListener("click", onFetchCoversClick);
-    el("searchInput").addEventListener("input", render);
+    // 検索中に一覧を作り直すと、特にモバイルではスクロール中の要素が
+    // 入れ替わって操作が引っかかる。検索は既に描画済みのカードの表示だけを
+    // 切り替え、一覧の再描画はデータやログイン状態が変わったときだけ行う。
+    el("searchInput").addEventListener("input", applySearchFilter);
     el("loginForm").addEventListener("submit", onLoginSubmit);
     el("loginCancelBtn").addEventListener("click", closeLoginModal);
     el("editForm").addEventListener("submit", onEditSubmit);
@@ -72,19 +75,43 @@ const App = (() => {
     el("loggedInAs").style.display = loggedIn ? "inline-block" : "none";
     el("loggedInAs").textContent = loggedIn ? Auth.getUserEmail() : "";
 
-    const q = (el("searchInput").value || "").toLowerCase();
-    const filtered = seriesList.filter(s =>
-      !q || (s.title || "").toLowerCase().includes(q) || (s.author || "").toLowerCase().includes(q)
-    ).sort((a, b) => Util.consecutiveFromOne(progressVolumes(b)) - Util.consecutiveFromOne(progressVolumes(a)) || (a.title || "").localeCompare(b.title || "", "ja"));
+    const sorted = [...seriesList].sort((a, b) =>
+      Util.consecutiveFromOne(progressVolumes(b)) - Util.consecutiveFromOne(progressVolumes(a)) || (a.title || "").localeCompare(b.title || "", "ja")
+    );
 
     const grid = el("grid");
     grid.innerHTML = "";
-    if (filtered.length === 0) {
-      grid.innerHTML = `<p class="empty">${seriesList.length === 0 ? "まだ登録がありません" : "該当する漫画がありません"}</p>`;
+    if (sorted.length === 0) {
+      grid.innerHTML = '<p class="empty">まだ登録がありません</p>';
       return;
     }
 
-    for (const s of filtered) grid.appendChild(renderCard(s, loggedIn));
+    for (const s of sorted) grid.appendChild(renderCard(s, loggedIn));
+    applySearchFilter();
+  }
+
+  function applySearchFilter() {
+    const q = (el("searchInput").value || "").trim().toLocaleLowerCase("ja");
+    const grid = el("grid");
+    const cards = Array.from(grid.querySelectorAll(".card"));
+    let matched = 0;
+
+    for (const card of cards) {
+      const searchable = card.dataset.searchText || "";
+      const visible = !q || searchable.includes(q);
+      card.hidden = !visible;
+      if (visible) matched++;
+    }
+
+    let empty = grid.querySelector(".search-empty");
+    if (!empty && cards.length) {
+      empty = document.createElement("p");
+      empty.className = "empty search-empty";
+      empty.textContent = "該当する漫画がありません";
+      empty.hidden = true;
+      grid.appendChild(empty);
+    }
+    if (empty) empty.hidden = matched !== 0;
   }
 
   function renderCard(s, loggedIn) {
@@ -95,6 +122,7 @@ const App = (() => {
 
     const card = document.createElement("div");
     card.className = "card";
+    card.dataset.searchText = `${s.title || ""}\n${s.author || ""}`.toLocaleLowerCase("ja");
     const coverTag = loggedIn ? "button" : "div";
     card.innerHTML = `
       <${coverTag} class="card-cover${loggedIn ? " edit-cover" : ""}"${loggedIn ? ` type="button" aria-label="${Util.escapeHtml(s.title)}を編集"` : ""}>
