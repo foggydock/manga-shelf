@@ -188,7 +188,12 @@ const App = (() => {
     el("editTotalVolumes").value = s?.total_volumes ?? "";
     el("editTrackingKind").value = s?.tracking_kind || (s?.read_volumes?.length ? "読んだ" : "持っている");
     const checked = progressVolumes(s || {});
-    el("editVolumeCount").value = Math.max(s?.total_volumes || 0, checked.length ? Math.max(...checked) : 0, 10);
+    el("editVolumeCount").value = Math.max(
+      s?.volume_display_count || 0,
+      s?.total_volumes || 0,
+      checked.length ? Math.max(...checked) : 0,
+      10,
+    );
     renderVolumeChecks(checked);
     el("editSynopsis").value = s?.synopsis || "";
     el("deleteBtn").style.display = s ? "inline-block" : "none";
@@ -211,6 +216,7 @@ const App = (() => {
       cover_url: el("editCoverUrl").value.trim() || null,
       status: el("editStatus").value.trim() || null,
       total_volumes: el("editTotalVolumes").value ? parseInt(el("editTotalVolumes").value, 10) : null,
+      volume_display_count: parseInt(el("editVolumeCount").value, 10),
       tracking_kind: el("editTrackingKind").value,
       checked_volumes: selectedVolumes(),
       synopsis: el("editSynopsis").value.trim() || null,

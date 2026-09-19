@@ -60,7 +60,11 @@ const Util = (() => {
 
   function validateVolumeFields(fields) {
     const total = fields.total_volumes;
+    const displayCount = fields.volume_display_count;
     const checked = fields.checked_volumes || [];
+    if (!Number.isSafeInteger(displayCount) || displayCount < 1) {
+      return "チェック欄を表示する巻数は1以上の整数で入力してください";
+    }
     if (total !== null && (!Number.isSafeInteger(total) || total < 1)) {
       return "全巻数は1以上の整数で入力してください";
     }

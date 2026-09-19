@@ -59,6 +59,7 @@ test('fills metadata and previews cover without writing before save', async () =
   assert.equal(writes[0][0], 'upload');
   assert.equal(writes[1][1].cover_url, 'https://example.test/cover.jpg');
   assert.equal(writes[1][1].checked_volumes.length, 0);
+  assert.equal(writes[1][1].volume_display_count, 40);
 });
 
 test('uses ISBN for the cover lookup without changing the saved series title', async () => {
@@ -102,6 +103,14 @@ test('updates volume checkboxes while typing without overwriting the typed numbe
   events['editVolumeCount:input']();
   assert.equal(el('editVolumeCount').value, '12');
   assert.match(el('volumeChecks').innerHTML, /12巻/);
+});
+
+test('saves the requested displayed-volume count with the series', async () => {
+  const { element: el, events, writes } = await setup();
+  el('editVolumeCount').value = '12';
+  events['editVolumeCount:input']();
+  await events['editForm:submit']({ preventDefault() {} });
+  assert.equal(writes[0][1].volume_display_count, 12);
 });
 
 test('preserves manual fields while using one volume-tracking state', async () => {
