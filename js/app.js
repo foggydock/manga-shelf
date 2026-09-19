@@ -53,11 +53,12 @@ const App = (() => {
     el("editTitle").addEventListener("input", resetFetch);
     el("editAuthor").addEventListener("input", resetFetch);
     el("editIsbn").addEventListener("input", resetFetch);
-    // 入力途中にチェック欄を描き直すと、数値欄の値も上書きされて
-    // 「12」のような複数桁を入力できなくなる。値の確定時だけ更新する。
-    ["editVolumeCount", "editTotalVolumes"].forEach(id => {
-      el(id).addEventListener("change", () => renderVolumeChecks());
-    });
+    // 入力中にもチェック欄を追従させる。ただし入力欄そのものは上書きせず、
+    // 「12」のような複数桁を途中で壊さない。
+    el("editVolumeCount").addEventListener("input", () => renderVolumeChecks(undefined, true));
+    el("editVolumeCount").addEventListener("change", () => renderVolumeChecks());
+    el("editTotalVolumes").addEventListener("input", () => renderVolumeChecks());
+    el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
     el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
     el("clearAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(false));
 
@@ -250,11 +251,11 @@ const App = (() => {
     return s.checked_volumes || (s.read_volumes?.length ? s.read_volumes : (s.owned_volumes || []));
   }
 
-  function renderVolumeChecks(checked = selectedVolumes()) {
+  function renderVolumeChecks(checked = selectedVolumes(), keepVolumeInput = false) {
     const requested = parseInt(el("editVolumeCount").value, 10) || 1;
     const total = parseInt(el("editTotalVolumes").value, 10) || 0;
     const count = Math.max(requested, total, checked.length ? Math.max(...checked) : 0);
-    el("editVolumeCount").value = count;
+    if (!keepVolumeInput) el("editVolumeCount").value = count;
     const selected = new Set(checked);
     el("volumeChecks").innerHTML = Array.from({ length: count }, (_, index) => {
       const volume = index + 1;
