@@ -89,6 +89,13 @@ test('can check or clear every displayed volume in one action', async () => {
   assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, false]);
 });
 
+test('updates the volume checkboxes while the displayed-volume count is typed', async () => {
+  const { element: el, events } = await setup();
+  el('editVolumeCount').value = '12';
+  events['editVolumeCount:input']();
+  assert.match(el('volumeChecks').innerHTML, /12巻/);
+});
+
 test('preserves manual fields while using one volume-tracking state', async () => {
   const { element: el, events, writes } = await setup();
   el('editAuthor').value = '手入力の作者';

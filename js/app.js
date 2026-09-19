@@ -53,8 +53,12 @@ const App = (() => {
     el("editTitle").addEventListener("input", resetFetch);
     el("editAuthor").addEventListener("input", resetFetch);
     el("editIsbn").addEventListener("input", resetFetch);
-    el("editVolumeCount").addEventListener("change", () => renderVolumeChecks());
-    el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
+    // 数値入力は、確定（change）を待たず入力中にもチェック欄を追従させる。
+    // スピンボタン操作など、inputだけにならない環境もあるためchangeも残す。
+    ["editVolumeCount", "editTotalVolumes"].forEach(id => {
+      el(id).addEventListener("input", () => renderVolumeChecks());
+      el(id).addEventListener("change", () => renderVolumeChecks());
+    });
     el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
     el("clearAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(false));
 
@@ -99,7 +103,7 @@ const App = (() => {
     for (const card of cards) {
       const searchable = card.dataset.searchText || "";
       const visible = !q || searchable.includes(q);
-      card.hidden = !visible;
+      card.classList.toggle("search-hidden", !visible);
       if (visible) matched++;
     }
 
@@ -108,10 +112,10 @@ const App = (() => {
       empty = document.createElement("p");
       empty.className = "empty search-empty";
       empty.textContent = "該当する漫画がありません";
-      empty.hidden = true;
+      empty.classList.add("search-hidden");
       grid.appendChild(empty);
     }
-    if (empty) empty.hidden = matched !== 0;
+    if (empty) empty.classList.toggle("search-hidden", matched !== 0);
   }
 
   function renderCard(s, loggedIn) {
