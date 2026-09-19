@@ -57,6 +57,9 @@ const App = (() => {
     // 「12」のような複数桁を途中で壊さない。
     el("editVolumeCount").addEventListener("input", () => renderVolumeChecks(undefined, true));
     el("editVolumeCount").addEventListener("change", () => renderVolumeChecks());
+    el("increaseVolumesBtn").addEventListener("click", () => stepVolumeCount(1));
+    el("decreaseVolumesBtn").addEventListener("click", () => stepVolumeCount(-1));
+    el("applyVolumesBtn").addEventListener("click", () => renderVolumeChecks());
     el("editTotalVolumes").addEventListener("input", () => renderVolumeChecks());
     el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
     el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
@@ -251,6 +254,12 @@ const App = (() => {
     return s.checked_volumes || (s.read_volumes?.length ? s.read_volumes : (s.owned_volumes || []));
   }
 
+  function stepVolumeCount(delta) {
+    const input = el("editVolumeCount");
+    input.value = Math.max(1, (parseInt(input.value, 10) || 1) + delta);
+    renderVolumeChecks();
+  }
+
   function renderVolumeChecks(checked = selectedVolumes(), keepVolumeInput = false) {
     const requested = parseInt(el("editVolumeCount").value, 10) || 1;
     const total = parseInt(el("editTotalVolumes").value, 10) || 0;
@@ -261,6 +270,7 @@ const App = (() => {
       const volume = index + 1;
       return `<label><input type="checkbox" value="${volume}"${selected.has(volume) ? " checked" : ""}>${volume}巻</label>`;
     }).join("");
+    el("volumeCountStatus").textContent = `1〜${count}巻のチェック欄を表示中`;
   }
 
   function selectedVolumes() {
