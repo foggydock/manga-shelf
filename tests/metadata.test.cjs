@@ -89,10 +89,10 @@ test('can check or clear every displayed volume in one action', async () => {
   assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, false]);
 });
 
-test('updates the volume checkboxes while the displayed-volume count is typed', async () => {
+test('updates the volume checkboxes after the displayed-volume count is confirmed', async () => {
   const { element: el, events } = await setup();
   el('editVolumeCount').value = '12';
-  events['editVolumeCount:input']();
+  events['editVolumeCount:change']();
   assert.match(el('volumeChecks').innerHTML, /12巻/);
 });
 

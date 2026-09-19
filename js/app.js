@@ -53,10 +53,9 @@ const App = (() => {
     el("editTitle").addEventListener("input", resetFetch);
     el("editAuthor").addEventListener("input", resetFetch);
     el("editIsbn").addEventListener("input", resetFetch);
-    // 数値入力は、確定（change）を待たず入力中にもチェック欄を追従させる。
-    // スピンボタン操作など、inputだけにならない環境もあるためchangeも残す。
+    // 入力途中にチェック欄を描き直すと、数値欄の値も上書きされて
+    // 「12」のような複数桁を入力できなくなる。値の確定時だけ更新する。
     ["editVolumeCount", "editTotalVolumes"].forEach(id => {
-      el(id).addEventListener("input", () => renderVolumeChecks());
       el(id).addEventListener("change", () => renderVolumeChecks());
     });
     el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
