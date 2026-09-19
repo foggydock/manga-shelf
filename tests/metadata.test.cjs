@@ -24,7 +24,7 @@ async function setup({ meta, cover, saveError } = {}) {
     return elements.get(id);
   };
   const db = {
-    init() {}, listSeries: async () => [],
+    init() {}, listSeries: async () => ({ data: [], error: null }),
     fetchSynopsis: () => meta || Promise.resolve({ data: { ok: true, author: '作者', synopsis: '紹介文', status: '完結', total_volumes: 40 } }),
     insertSeries: async fields => { writes.push(['insert', fields]); return { error: saveError }; },
     updateSeries: async (id, fields) => { writes.push(['update', fields]); return { error: saveError }; },
