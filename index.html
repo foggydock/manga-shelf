@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=volume-stepper-1">
 </head>
 <body>
 <header>
@@ -74,9 +74,16 @@
           <option value="持っている">持っている</option>
         </select>
       </label>
-      <label>チェック欄を表示する巻数
-        <input id="editVolumeCount" type="number" min="1" value="10">
-      </label>
+      <div class="volume-count-field">
+        <label for="editVolumeCount">チェック欄を表示する巻数</label>
+        <div class="volume-stepper">
+          <button type="button" id="decreaseVolumesBtn" aria-label="チェック欄を1巻減らす">−</button>
+          <input id="editVolumeCount" type="number" inputmode="numeric" min="1" value="10">
+          <button type="button" id="increaseVolumesBtn" aria-label="チェック欄を1巻増やす">＋</button>
+          <button type="button" id="applyVolumesBtn">反映</button>
+        </div>
+        <p id="volumeCountStatus" class="metadata-help" role="status" aria-live="polite"></p>
+      </div>
       <fieldset class="volume-checks-fieldset">
         <legend>巻ごとの記録</legend>
         <p class="metadata-help">該当する巻にチェックを入れてください。続いている作品は、1巻から連続するチェック数が本棚に表示されます。</p>
@@ -105,6 +112,6 @@
 <script src="js/db.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/covers.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=volume-stepper-1"></script>
 </body>
 </html>
