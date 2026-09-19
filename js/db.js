@@ -23,8 +23,7 @@ const DB = (() => {
       .from("manga_shelf_series")
       .select("*")
       .order("title", { ascending: true });
-    if (error) { Util.showBanner(`読み込みエラー: ${error.message}`, "error"); return []; }
-    return data || [];
+    return { data: data || [], error };
   }
 
   async function insertSeries(row) {

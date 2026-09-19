@@ -6,6 +6,7 @@ const App = (() => {
   let candidateUrl = null;
   let saving = false;
   let newSeriesId = null;
+  let listLoadError = null;
 
   function editMessage(text, error = false) {
     el("editMessage").textContent = text;
@@ -70,7 +71,13 @@ const App = (() => {
   }
 
   async function load() {
-    seriesList = await DB.listSeries();
+    const { data, error } = await DB.listSeries();
+    if (error) {
+      listLoadError = error.message || "通信状態を確認してください";
+    } else {
+      seriesList = data;
+      listLoadError = null;
+    }
     render();
   }
 
@@ -89,8 +96,15 @@ const App = (() => {
 
     const grid = el("grid");
     grid.innerHTML = "";
+    if (listLoadError) {
+      const error = document.createElement("div");
+      error.className = "list-load-error";
+      error.innerHTML = `<p>作品を読み込めませんでした。${Util.escapeHtml(listLoadError)}</p><button type="button">再試行</button>`;
+      error.querySelector("button").addEventListener("click", load);
+      grid.appendChild(error);
+    }
     if (sorted.length === 0) {
-      grid.innerHTML = '<p class="empty">まだ登録がありません</p>';
+      if (!listLoadError) grid.innerHTML = '<p class="empty">まだ登録がありません</p>';
       return;
     }
 
