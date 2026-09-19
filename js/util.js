@@ -58,6 +58,15 @@ const Util = (() => {
     return volume - 1;
   }
 
+  // 全巻数が確定しており、1巻から全てチェック済みのときだけ読了とする。
+  // 表示用のチェック欄数だけでは読了と判定しない。
+  function isSeriesComplete(series) {
+    const total = series?.total_volumes;
+    if (!Number.isSafeInteger(total) || total < 1) return false;
+    const volumes = series?.checked_volumes || (series?.read_volumes?.length ? series.read_volumes : (series?.owned_volumes || []));
+    return consecutiveFromOne(volumes) >= total;
+  }
+
   function validateVolumeFields(fields) {
     const total = fields.total_volumes;
     const displayCount = fields.volume_display_count;
@@ -79,6 +88,6 @@ const Util = (() => {
     return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, validateVolumeFields, escapeHtml };
+  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, isSeriesComplete, validateVolumeFields, escapeHtml };
 })();
 window.Util = Util;

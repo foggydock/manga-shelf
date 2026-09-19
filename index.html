@@ -9,13 +9,19 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="styles.css?v=volume-stepper-1">
+<link rel="stylesheet" href="styles.css?v=completion-filter-1">
 </head>
 <body>
 <header>
   <h1>📚 漫画本棚</h1>
   <div class="header-actions">
     <input id="searchInput" type="text" placeholder="タイトル・作者で検索">
+    <label class="completion-filter" for="completionFilter">表示
+      <select id="completionFilter" aria-label="読了状況で絞り込む">
+        <option value="active">未完のみ</option>
+        <option value="all">すべて表示</option>
+      </select>
+    </label>
     <button id="fetchCoversBtn" style="display:none">📷 書影をまとめて取り込む</button>
     <button id="addBtn" class="primary" style="display:none">＋ 追加</button>
     <span id="loggedInAs" class="logged-in-as" style="display:none"></span>
@@ -112,6 +118,6 @@
 <script src="js/db.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/covers.js"></script>
-<script src="js/app.js?v=volume-stepper-1"></script>
+<script src="js/app.js?v=completion-filter-1"></script>
 </body>
 </html>
