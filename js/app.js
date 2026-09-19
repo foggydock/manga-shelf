@@ -44,6 +44,7 @@ const App = (() => {
     // 入れ替わって操作が引っかかる。検索は既に描画済みのカードの表示だけを
     // 切り替え、一覧の再描画はデータやログイン状態が変わったときだけ行う。
     el("searchInput").addEventListener("input", applySearchFilter);
+    el("completionFilter").addEventListener("change", applySearchFilter);
     el("loginForm").addEventListener("submit", onLoginSubmit);
     el("loginCancelBtn").addEventListener("click", closeLoginModal);
     el("editForm").addEventListener("submit", onEditSubmit);
@@ -99,13 +100,15 @@ const App = (() => {
 
   function applySearchFilter() {
     const q = (el("searchInput").value || "").trim().toLocaleLowerCase("ja");
+    const showCompleted = el("completionFilter").value === "all";
     const grid = el("grid");
     const cards = Array.from(grid.querySelectorAll(".card"));
     let matched = 0;
 
     for (const card of cards) {
       const searchable = card.dataset.searchText || "";
-      const visible = !q || searchable.includes(q);
+      const matchesSearch = !q || searchable.includes(q);
+      const visible = matchesSearch && (showCompleted || card.dataset.complete !== "true");
       card.classList.toggle("search-hidden", !visible);
       if (visible) matched++;
     }
@@ -114,11 +117,14 @@ const App = (() => {
     if (!empty && cards.length) {
       empty = document.createElement("p");
       empty.className = "empty search-empty";
-      empty.textContent = "該当する漫画がありません";
+      empty.textContent = showCompleted ? "該当する漫画がありません" : "未完の漫画はありません（「すべて表示」で読了済みを確認できます）";
       empty.classList.add("search-hidden");
       grid.appendChild(empty);
     }
-    if (empty) empty.classList.toggle("search-hidden", matched !== 0);
+    if (empty) {
+      empty.textContent = q ? "該当する漫画がありません" : (showCompleted ? "登録されている漫画がありません" : "未完の漫画はありません（「すべて表示」で読了済みを確認できます）");
+      empty.classList.toggle("search-hidden", matched !== 0);
+    }
   }
 
   function renderCard(s, loggedIn) {
@@ -130,6 +136,7 @@ const App = (() => {
     const card = document.createElement("div");
     card.className = "card";
     card.dataset.searchText = `${s.title || ""}\n${s.author || ""}`.toLocaleLowerCase("ja");
+    card.dataset.complete = String(Util.isSeriesComplete(s));
     const coverTag = loggedIn ? "button" : "div";
     card.innerHTML = `
       <${coverTag} class="card-cover${loggedIn ? " edit-cover" : ""}"${loggedIn ? ` type="button" aria-label="${Util.escapeHtml(s.title)}を編集"` : ""}>
