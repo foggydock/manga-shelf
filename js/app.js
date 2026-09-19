@@ -235,7 +235,7 @@ const App = (() => {
     controls.forEach(control => { control.disabled = true; });
     try {
       const id = editingId || (newSeriesId ||= crypto.randomUUID());
-      if (!fields.cover_url && candidate && el("useCoverCandidate").checked) {
+      if (candidate && el("useCoverCandidate").checked) {
         editMessage("書影を保存しています…");
         const uploaded = await Covers.upload(id, candidate.blob);
         if (uploaded.error) throw new Error(`書影の保存に失敗しました: ${uploaded.error.message}`);
@@ -330,8 +330,7 @@ const App = (() => {
     // 片方が失敗しても、もう片方の候補は利用できる。
     const [meta, cover] = await Promise.allSettled([
       withTimeout(() => DB.fetchSynopsis(title, author)),
-      el("editCoverUrl").value.trim() || candidate
-        ? Promise.resolve(null) : withTimeout(() => Covers.prepareCandidate(title, author, isbn)),
+      withTimeout(() => Covers.prepareCandidate(title, author, isbn)),
     ]);
     if (version !== editVersion) return;
     try {
@@ -357,14 +356,14 @@ const App = (() => {
       } else {
         messages.push(`作品情報を取得できませんでした: ${error?.message || data?.error || "時間をおいて再試行してください"}`);
       }
-      if (cover.status === "fulfilled" && cover.value && !el("editCoverUrl").value.trim()) {
+      if (cover.status === "fulfilled" && cover.value) {
         clearCandidate();
         candidate = cover.value;
         candidateUrl = URL.createObjectURL(candidate.blob);
         el("coverCandidateImage").src = candidateUrl;
         el("coverCandidateTitle").textContent = `${candidate.matched_title}${candidate.isbn ? " / ISBN " + candidate.isbn : ""}`;
         el("coverCandidate").hidden = false;
-        messages.push("書影の作品名・巻を確認し、使う場合はチェックしてください。");
+        messages.push("書影の作品名・巻を確認し、使う場合はチェックしてください。選択して保存すると現在の表紙も置き換わります。");
       } else if (cover.status === "rejected") {
         messages.push(`書影を取得できませんでした: ${cover.reason?.message || "再試行してください"}`);
       }
