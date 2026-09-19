@@ -78,6 +78,7 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; }
   display: flex;
   flex-direction: column;
 }
+.search-hidden { display: none !important; }
 
 .card-cover { aspect-ratio: 3 / 4; overflow: hidden; background: #2a2d34; }
 .card-cover.edit-cover { display: block; width: 100%; padding: 0; border: 0; text-align: inherit; color: inherit; cursor: pointer; }
