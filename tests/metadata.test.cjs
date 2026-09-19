@@ -164,6 +164,18 @@ test('unchecked cover is not uploaded when saving', async () => {
   assert.equal(writes[0][1].cover_url, null);
 });
 
+test('shows a candidate and replaces an existing cover when selected', async () => {
+  const { element: el, events, writes } = await setup();
+  el('editCoverUrl').value = 'https://example.test/wrong-cover.jpg';
+  el('editIsbn').value = '9784063726749';
+  await events['fetchMetadataBtn:click']();
+  assert.equal(el('coverCandidate').hidden, false);
+  el('useCoverCandidate').checked = true;
+  await events['editForm:submit']({ preventDefault() {} });
+  assert.equal(writes[0][0], 'upload');
+  assert.equal(writes[1][1].cover_url, 'https://example.test/cover.jpg');
+});
+
 test('save failure stays in edit with values and a visible error', async () => {
   const { element: el, events } = await setup({ saveError: { message: '保存できません' } });
   await events['fetchMetadataBtn:click']();
