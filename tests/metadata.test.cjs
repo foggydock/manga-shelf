@@ -113,14 +113,12 @@ test('saves the requested displayed-volume count with the series', async () => {
   assert.equal(writes[0][1].volume_display_count, 12);
 });
 
-test('preserves manual fields while using one volume-tracking state', async () => {
+test('preserves manual fields while fetching metadata', async () => {
   const { element: el, events, writes } = await setup();
   el('editAuthor').value = '手入力の作者';
-  el('editTrackingKind').value = '買った';
   el('editCoverUrl').value = 'https://example.test/manual.jpg';
   await events['fetchMetadataBtn:click']();
   assert.equal(el('editAuthor').value, '手入力の作者');
-  assert.equal(el('editTrackingKind').value, '買った');
   await events['editForm:submit']({ preventDefault() {} });
   assert.equal(writes.length, 1);
   assert.equal(writes[0][1].cover_url, 'https://example.test/manual.jpg');

@@ -129,7 +129,6 @@ const App = (() => {
 
   function renderCard(s, loggedIn) {
     const volumes = progressVolumes(s);
-    const kind = s.tracking_kind || (s.read_volumes?.length ? "読んだ" : "持っている");
     const consecutive = Util.consecutiveFromOne(volumes);
     const maxChecked = volumes.length ? Math.max(...volumes) : 0;
 
@@ -148,7 +147,7 @@ const App = (() => {
         <h3>${Util.escapeHtml(s.title)}</h3>
         ${s.author ? `<p class="author">${Util.escapeHtml(s.author)}</p>` : ""}
         ${s.status ? `<span class="badge">${Util.escapeHtml(s.status)}</span>` : ""}
-        <div class="progress-summary"><span>${Util.escapeHtml(kind)}</span><strong>1巻から ${consecutive}巻連続</strong></div>
+        <div class="progress-summary"><span>チェック済み</span><strong>1巻から ${consecutive}巻連続</strong></div>
         <div class="vol-row"><span class="vol-label">チェック済み</span><span>${volumes.length ? Util.toRangeString(volumes) + "巻" : "なし"}${s.total_volumes ? ` / 全${s.total_volumes}巻` : ""}</span></div>
         ${maxChecked > consecutive ? `<div class="vol-row gap"><span class="vol-label">途中の抜け</span><span>${consecutive + 1}巻</span></div>` : ""}
         ${s.synopsis ? `<p class="synopsis">${Util.escapeHtml(s.synopsis)}</p>` : ""}
@@ -193,7 +192,6 @@ const App = (() => {
     el("editCoverUrl").value = s?.cover_url || "";
     el("editStatus").value = s?.status || "";
     el("editTotalVolumes").value = s?.total_volumes ?? "";
-    el("editTrackingKind").value = s?.tracking_kind || (s?.read_volumes?.length ? "読んだ" : "持っている");
     const checked = progressVolumes(s || {});
     el("editVolumeCount").value = Math.max(
       s?.volume_display_count || 0,
@@ -224,7 +222,6 @@ const App = (() => {
       status: el("editStatus").value.trim() || null,
       total_volumes: el("editTotalVolumes").value ? parseInt(el("editTotalVolumes").value, 10) : null,
       volume_display_count: parseInt(el("editVolumeCount").value, 10),
-      tracking_kind: el("editTrackingKind").value,
       checked_volumes: selectedVolumes(),
       synopsis: el("editSynopsis").value.trim() || null,
     };
