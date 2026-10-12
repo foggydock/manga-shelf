@@ -1,10 +1,23 @@
 // タイトル（＋作者）から編集用の作品情報候補を生成する。書影はbook-coverから取得。
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// anon鍵だけ（未ログイン）のJWTは通さない。利用者本人のJWTだけ通す。
+async function authenticatedUser(req: Request) {
+  const authorization = req.headers.get("Authorization") || "";
+  if (!authorization.startsWith("Bearer ")) return null;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !key) return null;
+  const client = createClient(url, key, { global: { headers: { Authorization: authorization } } });
+  const { data, error } = await client.auth.getUser();
+  return error ? null : data.user;
+}
 
 async function callGemini(prompt: string, schema: Record<string, unknown>) {
   const key = Deno.env.get("GEMINI_API_KEY");
@@ -86,6 +99,12 @@ async function generateSynopsis(title: string, author?: string) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
+  }
+  if (!(await authenticatedUser(req))) {
+    return new Response(JSON.stringify({ ok: false, error: "ログインが必要です" }), {
+      status: 401,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
   }
   try {
     const { title, author } = await req.json();
