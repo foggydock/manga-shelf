@@ -81,10 +81,12 @@ const Covers = (() => {
     if (!d || res.error || d.ok === false) {
       return { error: (d && d.error) || (res.error && res.error.message) || "取得できませんでした" };
     }
+    // 保留にする（自動では入れない）候補は、保存領域へ書き込まない。
+    if (!d.exact) return { matched_title: d.matched_title, exact: false };
     const small = await shrink(b64ToBlob(d.b64, d.mime));
     const up = await upload(series.id, small);
     if (up.error) return { error: up.error.message };
-    return { url: up.url, matched_title: d.matched_title, exact: !!d.exact };
+    return { url: up.url, matched_title: d.matched_title, exact: true };
   }
 
   function ui(show) {
@@ -104,7 +106,7 @@ const Covers = (() => {
     ui(true).querySelector("#cover-progress-text").textContent = msg;
   }
 
-  async function runBatch(seriesList, onUpdated) {
+  async function runBatch(seriesList) {
     const targets = seriesList.filter((s) => !s.cover_url && s.title);
     if (!targets.length) { Util.showBanner("書影が無い作品はありません", "success"); return; }
     if (!confirm(
@@ -130,16 +132,26 @@ const Covers = (() => {
       const upd = await DB.updateSeries(s.id, { cover_url: r.url });
       if (upd.error) { missed.push(s.title); continue; }
       ok++;
-      if (onUpdated) onUpdated();
     }
     ui(false);
 
     Util.showBanner(`書影を${ok}件に入れました（保留${ambiguous.length}・不明${missed.length}）`, "success");
-    console.log("書影 保留:", ambiguous);
-    console.log("書影 見つからず:", missed);
+    // スマホでは開発者用の画面（コンソール）を見られないため、対象の作品名を画面に出す。
+    if (ambiguous.length || missed.length) {
+      const lines = [`書影を${ok}件に入れました。`];
+      if (ambiguous.length) {
+        lines.push("", `■ 保留 ${ambiguous.length}件（作品名が完全には一致しないため入れていません。編集画面の「作品情報をまとめて取得」で確認して選べます）`);
+        lines.push(...ambiguous.map((t) => `・${t}`));
+      }
+      if (missed.length) {
+        lines.push("", `■ 見つからず ${missed.length}件`);
+        lines.push(...missed.map((t) => `・${t}`));
+      }
+      alert(lines.join("\n"));
+    }
     return { ok, ambiguous, missed };
   }
 
-  return { runBatch, fetchOne, resolveUrl, prepareCandidate, upload };
+  return { runBatch, resolveUrl, prepareCandidate, upload };
 })();
 window.Covers = Covers;

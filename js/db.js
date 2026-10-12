@@ -18,7 +18,7 @@ const DB = (() => {
   function getClient() { return client; }
 
   async function listSeries() {
-    if (!client) return [];
+    if (!client) return { data: [], error: { message: "未接続" } };
     const { data, error } = await client
       .from("manga_shelf_series")
       .select("*")

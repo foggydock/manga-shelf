@@ -9,22 +9,6 @@ const Util = (() => {
     el._t = setTimeout(() => { el.style.display = "none"; }, 4000);
   }
 
-  // "1-5,7,9-10" -> [1,2,3,4,5,7,9,10]
-  function parseRange(str) {
-    if (!str) return [];
-    const out = new Set();
-    for (const part of String(str).split(",").map(s => s.trim()).filter(Boolean)) {
-      const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
-      if (m) {
-        const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
-        for (let i = Math.min(a, b); i <= Math.max(a, b); i++) out.add(i);
-      } else if (/^\d+$/.test(part)) {
-        out.add(parseInt(part, 10));
-      }
-    }
-    return Array.from(out).sort((a, b) => a - b);
-  }
-
   // [1,2,3,5,7,8] -> "1-3,5,7-8"
   function toRangeString(arr) {
     if (!arr || arr.length === 0) return "";
@@ -58,13 +42,17 @@ const Util = (() => {
     return volume - 1;
   }
 
+  // チェック済みの巻。旧形式（既読・所持）しかない作品はそちらを使う。
+  function progressVolumes(series) {
+    return series?.checked_volumes || (series?.read_volumes?.length ? series.read_volumes : (series?.owned_volumes || []));
+  }
+
   // 全巻数が確定しており、1巻から全てチェック済みのときだけ読了とする。
   // 表示用のチェック欄数だけでは読了と判定しない。
   function isSeriesComplete(series) {
     const total = series?.total_volumes;
     if (!Number.isSafeInteger(total) || total < 1) return false;
-    const volumes = series?.checked_volumes || (series?.read_volumes?.length ? series.read_volumes : (series?.owned_volumes || []));
-    return consecutiveFromOne(volumes) >= total;
+    return consecutiveFromOne(progressVolumes(series)) >= total;
   }
 
   function validateVolumeFields(fields) {
@@ -88,6 +76,6 @@ const Util = (() => {
     return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  return { showBanner, parseRange, toRangeString, findGaps, consecutiveFromOne, isSeriesComplete, validateVolumeFields, escapeHtml };
+  return { showBanner, toRangeString, findGaps, consecutiveFromOne, progressVolumes, isSeriesComplete, validateVolumeFields, escapeHtml };
 })();
 window.Util = Util;

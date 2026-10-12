@@ -6,7 +6,6 @@
   --accent: #6b8afd;
   --danger: #e5636b;
   --gap-color: #e5636b;
-  --unread-color: #d9a441;
   --border: #33363d;
 }
 
@@ -108,7 +107,6 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; }
 .vol-row { display: flex; justify-content: space-between; font-size: 0.85rem; gap: 8px; }
 .vol-label { color: var(--text-dim); flex-shrink: 0; }
 .vol-row.gap span:last-child { color: var(--gap-color); font-weight: 600; }
-.vol-row.unread span:last-child { color: var(--unread-color); }
 .progress-summary { margin: 4px 0; padding: 8px; border-left: 3px solid var(--accent); background: #292d38; display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; }
 .progress-summary span { color: var(--text-dim); }
 .progress-summary strong { font-size: 1rem; }

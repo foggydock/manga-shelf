@@ -21,3 +21,18 @@ test('treats a series as complete only when every known volume is checked', () =
   assert.equal(isSeriesComplete({ total_volumes: null, checked_volumes: [1, 2, 3] }), false);
   assert.equal(isSeriesComplete({ volume_display_count: 3, checked_volumes: [1, 2, 3] }), false);
 });
+
+test('lists every missing volume before the highest checked one', () => {
+  const { findGaps } = context.window.Util;
+  assert.deepEqual([...findGaps([1, 2, 4, 6])], [3, 5]);
+  assert.deepEqual([...findGaps([1, 2, 3])], []);
+  assert.deepEqual([...findGaps([])], []);
+});
+
+test('uses checked volumes, falling back to the former read/owned volumes', () => {
+  const { progressVolumes } = context.window.Util;
+  assert.deepEqual([...progressVolumes({ checked_volumes: [1, 2], read_volumes: [5] })], [1, 2]);
+  assert.deepEqual([...progressVolumes({ read_volumes: [3], owned_volumes: [4] })], [3]);
+  assert.deepEqual([...progressVolumes({ read_volumes: [], owned_volumes: [4] })], [4]);
+  assert.deepEqual([...progressVolumes({})], []);
+});

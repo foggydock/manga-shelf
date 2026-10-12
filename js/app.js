@@ -1,4 +1,5 @@
 const App = (() => {
+  const FETCH_METADATA_LABEL = "✨ 作品情報をまとめて取得";
   let seriesList = [];
   let editingId = null;
   let editVersion = 0;
@@ -7,6 +8,9 @@ const App = (() => {
   let saving = false;
   let newSeriesId = null;
   let listLoadError = null;
+  let loadedUserId; // 表示中の一覧が、どの利用者（未ログインは null）のものか
+  let loadSeq = 0;
+  let coverBatchRunning = false;
 
   function editMessage(text, error = false) {
     el("editMessage").textContent = text;
@@ -27,7 +31,7 @@ const App = (() => {
     editVersion++;
     clearCandidate();
     el("fetchMetadataBtn").disabled = false;
-    el("fetchMetadataBtn").textContent = "✨ 作品情報をまとめて取得";
+    el("fetchMetadataBtn").textContent = FETCH_METADATA_LABEL;
     editMessage("");
   }
 
@@ -36,9 +40,15 @@ const App = (() => {
   async function boot() {
     DB.init();
     await Auth.refreshSession();
-    Auth.onChange(() => render());
+    // この通知は、ログイン・ログアウト（他のタブを含む）のほか、アプリやタブに
+    // 戻るたび・ログインの更新のたびにも届く。そのたびに一覧を作り直すと表紙を
+    // すべて読み込み直すため、ログイン中の利用者が変わったときだけ読み直す。
+    Auth.onChange(() => {
+      renderHeader();
+      setTimeout(() => { if (Auth.getUserId() !== loadedUserId) load(); }, 0);
+    });
     el("loginBtn").addEventListener("click", openLoginModal);
-    el("logoutBtn").addEventListener("click", async () => { await Auth.signOut(); await load(); });
+    el("logoutBtn").addEventListener("click", onLogoutClick);
     el("addBtn").addEventListener("click", () => openEditModal(null));
     el("fetchCoversBtn").addEventListener("click", onFetchCoversClick);
     // 検索中に一覧を作り直すと、特にモバイルではスクロール中の要素が
@@ -71,7 +81,17 @@ const App = (() => {
   }
 
   async function load() {
+    const seq = ++loadSeq;
+    const userId = Auth.getUserId();
+    if (userId !== loadedUserId) {
+      // 前の利用者（ログアウト前）の一覧を、読み込み中に表示し続けない。
+      seriesList = [];
+      listLoadError = null;
+      el("grid").innerHTML = "";
+    }
+    loadedUserId = userId;
     const { data, error } = await DB.listSeries();
+    if (seq !== loadSeq) return; // 後から始めた読み込みの結果を優先する。
     if (error) {
       listLoadError = error.message || "通信状態を確認してください";
     } else {
@@ -81,7 +101,7 @@ const App = (() => {
     render();
   }
 
-  function render() {
+  function renderHeader() {
     const loggedIn = Auth.isLoggedIn();
     el("loginBtn").style.display = loggedIn ? "none" : "inline-block";
     el("logoutBtn").style.display = loggedIn ? "inline-block" : "none";
@@ -89,9 +109,13 @@ const App = (() => {
     el("fetchCoversBtn").style.display = loggedIn ? "inline-block" : "none";
     el("loggedInAs").style.display = loggedIn ? "inline-block" : "none";
     el("loggedInAs").textContent = loggedIn ? Auth.getUserEmail() : "";
+  }
 
+  function render() {
+    renderHeader();
+    const loggedIn = Auth.isLoggedIn();
     const sorted = [...seriesList].sort((a, b) =>
-      Util.consecutiveFromOne(progressVolumes(b)) - Util.consecutiveFromOne(progressVolumes(a)) || (a.title || "").localeCompare(b.title || "", "ja")
+      Util.consecutiveFromOne(Util.progressVolumes(b)) - Util.consecutiveFromOne(Util.progressVolumes(a)) || (a.title || "").localeCompare(b.title || "", "ja")
     );
 
     const grid = el("grid");
@@ -131,20 +155,19 @@ const App = (() => {
     if (!empty && cards.length) {
       empty = document.createElement("p");
       empty.className = "empty search-empty";
-      empty.textContent = showCompleted ? "該当する漫画がありません" : "未完の漫画はありません（「すべて表示」で読了済みを確認できます）";
-      empty.classList.add("search-hidden");
       grid.appendChild(empty);
     }
     if (empty) {
-      empty.textContent = q ? "該当する漫画がありません" : (showCompleted ? "登録されている漫画がありません" : "未完の漫画はありません（「すべて表示」で読了済みを確認できます）");
+      // 検索なしで「すべて表示」なら必ず1件以上見えるので、ここに来るのは検索か未完の絞り込み。
+      empty.textContent = q ? "該当する漫画がありません" : "未完の漫画はありません（「すべて表示」で読了済みを確認できます）";
       empty.classList.toggle("search-hidden", matched !== 0);
     }
   }
 
   function renderCard(s, loggedIn) {
-    const volumes = progressVolumes(s);
+    const volumes = Util.progressVolumes(s);
     const consecutive = Util.consecutiveFromOne(volumes);
-    const maxChecked = volumes.length ? Math.max(...volumes) : 0;
+    const gaps = Util.findGaps(volumes);
 
     const card = document.createElement("div");
     card.className = "card";
@@ -163,9 +186,9 @@ const App = (() => {
         ${s.status ? `<span class="badge">${Util.escapeHtml(s.status)}</span>` : ""}
         <div class="progress-summary"><span>チェック済み</span><strong>1巻から ${consecutive}巻連続</strong></div>
         <div class="vol-row"><span class="vol-label">チェック済み</span><span>${volumes.length ? Util.toRangeString(volumes) + "巻" : "なし"}${s.total_volumes ? ` / 全${s.total_volumes}巻` : ""}</span></div>
-        ${maxChecked > consecutive ? `<div class="vol-row gap"><span class="vol-label">途中の抜け</span><span>${consecutive + 1}巻</span></div>` : ""}
+        ${gaps.length ? `<div class="vol-row gap"><span class="vol-label">途中の抜け</span><span>${Util.toRangeString(gaps)}巻</span></div>` : ""}
         ${s.synopsis ? `<p class="synopsis">${Util.escapeHtml(s.synopsis)}</p>` : ""}
-        ${loggedIn ? `<button class="edit-link" data-id="${s.id}">編集</button>` : ""}
+        ${loggedIn ? `<button class="edit-link">編集</button>` : ""}
       </div>
     `;
     if (loggedIn) {
@@ -191,11 +214,22 @@ const App = (() => {
     if (error) { Util.showBanner(`ログイン失敗: ${error.message}`, "error"); return; }
     closeLoginModal();
     Util.showBanner("ログインしました", "success");
-    await load();
+    // 一覧は、ログインの通知を受けて読み直す。
+  }
+
+  async function onLogoutClick() {
+    const { error } = await Auth.signOut();
+    if (error) Util.showBanner(`ログアウト失敗: ${error.message}`, "error");
+    // 一覧は、ログアウトの通知を受けて読み直す。
   }
 
   // --- 追加・編集 ---
   function openEditModal(s) {
+    // 取り込み中に、取り込み前の内容で保存すると、入れたばかりの表紙が消えてしまう。
+    if (s && coverBatchRunning) {
+      alert("書影の取り込みが終わるまで、作品の編集はできません。\n急ぐ場合は画面下の「とめる」を押してください。");
+      return;
+    }
     resetFetch();
     newSeriesId = null;
     editingId = s ? s.id : null;
@@ -206,7 +240,7 @@ const App = (() => {
     el("editCoverUrl").value = s?.cover_url || "";
     el("editStatus").value = s?.status || "";
     el("editTotalVolumes").value = s?.total_volumes ?? "";
-    const checked = progressVolumes(s || {});
+    const checked = Util.progressVolumes(s || {});
     el("editVolumeCount").value = Math.max(
       s?.volume_display_count || 0,
       s?.total_volumes || 0,
@@ -270,12 +304,8 @@ const App = (() => {
     } finally {
       saving = false;
       controls.forEach(control => { control.disabled = false; });
-      el("fetchMetadataBtn").textContent = "✨ 作品情報をまとめて取得";
+      el("fetchMetadataBtn").textContent = FETCH_METADATA_LABEL;
     }
-  }
-
-  function progressVolumes(s) {
-    return s.checked_volumes || (s.read_volumes?.length ? s.read_volumes : (s.owned_volumes || []));
   }
 
   function stepVolumeCount(delta) {
@@ -309,7 +339,15 @@ const App = (() => {
   }
 
   async function onFetchCoversClick() {
-    await Covers.runBatch(seriesList, () => {});
+    if (coverBatchRunning) return;
+    coverBatchRunning = true;
+    el("fetchCoversBtn").disabled = true;
+    try {
+      await Covers.runBatch(seriesList);
+    } finally {
+      coverBatchRunning = false;
+      el("fetchCoversBtn").disabled = false;
+    }
     await load();
   }
 
@@ -386,7 +424,7 @@ const App = (() => {
       editMessage(`候補の表示に失敗しました: ${error.message}`, true);
     } finally {
       btn.disabled = false;
-      btn.textContent = "✨ 作品情報をまとめて取得";
+      btn.textContent = FETCH_METADATA_LABEL;
     }
   }
 

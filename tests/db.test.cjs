@@ -35,3 +35,15 @@ test('preserves a list-load error instead of treating it as an empty list', asyn
   assert.equal(result.error, error);
   assert.equal(result.data.length, 0);
 });
+
+test('reports a list-load error when the Supabase library is unavailable', async () => {
+  const context = vm.createContext({
+    window: { MANGA_CONFIG: { SUPABASE_URL: 'https://example.test', SUPABASE_ANON_KEY: 'public-key' } },
+    Util: { showBanner() {} },
+  });
+  vm.runInContext(fs.readFileSync('js/db.js', 'utf8'), context);
+  context.window.DB.init();
+  const result = await context.window.DB.listSeries();
+  assert.ok(result.error);
+  assert.equal(result.data.length, 0);
+});
