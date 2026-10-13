@@ -55,6 +55,18 @@ const Covers = (() => {
     return data.signedUrl;
   }
 
+  // 作品を削除したあとに、自前バケットの表紙画像も消す。外部URLの表紙は何もしない。
+  // 画像だけ残っても害は小さいので、失敗しても作品の削除は成功のまま扱い、結果だけ返す。
+  async function remove(url) {
+    const marker = `/storage/v1/object/public/${BUCKET}/`;
+    if (!url || !url.includes(marker)) return { removed: false };
+    const client = DB.getClient();
+    if (!client) return { removed: false, error: { message: "未接続" } };
+    const path = decodeURIComponent(url.split(marker)[1].split("?")[0]);
+    const { error } = await client.storage.from(BUCKET).remove([path]);
+    return error ? { removed: false, error } : { removed: true };
+  }
+
   // 編集用候補は保存ボタンを押すまでStorageへ書き込まない。
   async function prepareCandidate(title, author, isbn = "") {
     // ISBNが指定された場合はタイトル検索をせず、その版の書影を直接取得する。
@@ -152,6 +164,6 @@ const Covers = (() => {
     return { ok, ambiguous, missed };
   }
 
-  return { runBatch, resolveUrl, prepareCandidate, upload };
+  return { runBatch, resolveUrl, prepareCandidate, upload, remove };
 })();
 window.Covers = Covers;

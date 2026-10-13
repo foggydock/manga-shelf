@@ -431,10 +431,12 @@ const App = (() => {
   async function onDeleteClick() {
     if (!editingId) return;
     if (!confirm("削除しますか？")) return;
+    const coverUrl = seriesList.find(s => s.id === editingId)?.cover_url;
     const { error } = await DB.deleteSeries(editingId);
     if (error) { Util.showBanner(`削除エラー: ${error.message}`, "error"); return; }
+    const cover = await Covers.remove(coverUrl);
     closeEditModal();
-    Util.showBanner("削除しました", "success");
+    Util.showBanner(cover.error ? "削除しました（表紙画像は消せませんでした）" : "削除しました", cover.error ? "error" : "success");
     await load();
   }
 
