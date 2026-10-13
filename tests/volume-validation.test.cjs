@@ -22,3 +22,9 @@ test('requires a positive integer for the number of displayed checkboxes', () =>
   assert.match(validateVolumeFields({ total_volumes: null, volume_display_count: 1.5, checked_volumes: [] }), /チェック欄/);
   assert.equal(validateVolumeFields({ total_volumes: null, volume_display_count: 12, checked_volumes: [] }), null);
 });
+
+test('rejects volume counts above the upper limit', () => {
+  assert.match(validateVolumeFields({ total_volumes: null, volume_display_count: 501, checked_volumes: [] }), /500以下/);
+  assert.match(validateVolumeFields({ total_volumes: 100000, volume_display_count: 10, checked_volumes: [] }), /500以下/);
+  assert.equal(validateVolumeFields({ total_volumes: 500, volume_display_count: 500, checked_volumes: [500] }), null);
+});

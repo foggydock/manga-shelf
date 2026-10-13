@@ -310,14 +310,14 @@ const App = (() => {
 
   function stepVolumeCount(delta) {
     const input = el("editVolumeCount");
-    input.value = Math.max(1, (parseInt(input.value, 10) || 1) + delta);
+    input.value = Math.min(Util.MAX_VOLUMES, Math.max(1, (parseInt(input.value, 10) || 1) + delta));
     renderVolumeChecks();
   }
 
   function renderVolumeChecks(checked = selectedVolumes(), keepVolumeInput = false) {
     const requested = parseInt(el("editVolumeCount").value, 10) || 1;
     const total = parseInt(el("editTotalVolumes").value, 10) || 0;
-    const count = Math.max(requested, total, checked.length ? Math.max(...checked) : 0);
+    const count = Math.min(Math.max(requested, total, checked.length ? Math.max(...checked) : 0), Util.MAX_VOLUMES);
     if (!keepVolumeInput) el("editVolumeCount").value = count;
     const selected = new Set(checked);
     el("volumeChecks").innerHTML = Array.from({ length: count }, (_, index) => {

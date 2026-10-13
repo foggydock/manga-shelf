@@ -55,15 +55,18 @@ const Util = (() => {
     return consecutiveFromOne(progressVolumes(series)) >= total;
   }
 
+  // チェック欄を作りすぎて画面が固まらないための上限。
+  const MAX_VOLUMES = 500;
+
   function validateVolumeFields(fields) {
     const total = fields.total_volumes;
     const displayCount = fields.volume_display_count;
     const checked = fields.checked_volumes || [];
-    if (!Number.isSafeInteger(displayCount) || displayCount < 1) {
-      return "チェック欄を表示する巻数は1以上の整数で入力してください";
+    if (!Number.isSafeInteger(displayCount) || displayCount < 1 || displayCount > MAX_VOLUMES) {
+      return `チェック欄を表示する巻数は1以上${MAX_VOLUMES}以下の整数で入力してください`;
     }
-    if (total !== null && (!Number.isSafeInteger(total) || total < 1)) {
-      return "全巻数は1以上の整数で入力してください";
+    if (total !== null && (!Number.isSafeInteger(total) || total < 1 || total > MAX_VOLUMES)) {
+      return `全巻数は1以上${MAX_VOLUMES}以下の整数で入力してください`;
     }
     const maxChecked = checked.length ? Math.max(...checked) : 0;
     if (total !== null && maxChecked > total) {
@@ -76,6 +79,6 @@ const Util = (() => {
     return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  return { showBanner, toRangeString, findGaps, consecutiveFromOne, progressVolumes, isSeriesComplete, validateVolumeFields, escapeHtml };
+  return { MAX_VOLUMES, showBanner, toRangeString, findGaps, consecutiveFromOne, progressVolumes, isSeriesComplete, validateVolumeFields, escapeHtml };
 })();
 window.Util = Util;

@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="styles.css?v=cleanup-2">
+<link rel="stylesheet" href="styles.css?v=cleanup-3">
 </head>
 <body>
 <header>
@@ -71,12 +71,12 @@
       <label>作者<input id="editAuthor" type="text"></label>
       <label>表紙画像URL<input id="editCoverUrl" type="text" placeholder="https://..."></label>
       <label>ステータス<input id="editStatus" type="text" placeholder="連載中 / 完結 など"></label>
-      <label>全巻数（既知の場合）<input id="editTotalVolumes" type="number" min="1"></label>
+      <label>全巻数（既知の場合）<input id="editTotalVolumes" type="number" min="1" max="500"></label>
       <div class="volume-count-field">
         <label for="editVolumeCount">チェック欄を表示する巻数</label>
         <div class="volume-stepper">
           <button type="button" id="decreaseVolumesBtn" aria-label="チェック欄を1巻減らす">−</button>
-          <input id="editVolumeCount" type="number" inputmode="numeric" min="1" value="10">
+          <input id="editVolumeCount" type="number" inputmode="numeric" min="1" max="500" value="10">
           <button type="button" id="increaseVolumesBtn" aria-label="チェック欄を1巻増やす">＋</button>
           <button type="button" id="applyVolumesBtn">反映</button>
         </div>
@@ -106,10 +106,10 @@
 <!-- 版を固定し integrity で改ざんを検知する（版を上げるときは integrity も計算し直す） -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
 <script src="js/config.js"></script>
-<script src="js/util.js?v=cleanup-2"></script>
-<script src="js/db.js?v=cleanup-2"></script>
+<script src="js/util.js?v=cleanup-3"></script>
+<script src="js/db.js?v=cleanup-3"></script>
 <script src="js/auth.js"></script>
-<script src="js/covers.js?v=cleanup-2"></script>
-<script src="js/app.js?v=cleanup-2"></script>
+<script src="js/covers.js?v=cleanup-3"></script>
+<script src="js/app.js?v=cleanup-3"></script>
 </body>
 </html>
