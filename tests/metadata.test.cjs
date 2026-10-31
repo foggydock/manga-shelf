@@ -8,7 +8,7 @@ function deferred() {
   const promise = new Promise(r => { resolve = r; });
   return { promise, resolve };
 }
-async function setup({ meta, cover, saveError } = {}) {
+async function setup({ meta, cover, saveError, confirmResult = true, existing } = {}) {
   const elements = new Map();
   const events = {};
   const writes = [];
@@ -37,14 +37,45 @@ async function setup({ meta, cover, saveError } = {}) {
     Util: { MAX_VOLUMES: 500, toRangeString: () => '', progressVolumes: s => s.checked_volumes || [], validateVolumeFields: () => null, showBanner() {} },
     URL: { createObjectURL: () => 'blob:candidate', revokeObjectURL() {} },
     setTimeout, clearTimeout,
+    confirm: () => confirmResult,
     crypto: { randomUUID: () => 'new-id' },
   });
-  vm.runInContext(fs.readFileSync('js/app.js', 'utf8'), ctx);
+  const source = fs.readFileSync('js/app.js', 'utf8').replace('return { boot };', 'return { boot, openEditModal };');
+  vm.runInContext(source + '\nwindow.testApp = App;', ctx);
   await events.DOMContentLoaded();
-  await events['addBtn:click']();
+  if (existing) ctx.window.testApp.openEditModal(existing);
+  else await events['addBtn:click']();
   element('editTitle').value = '作品';
   return { element, events, writes, coverRequests, volumeInputs };
 }
+
+test('keeps saved short display count when reopening and saving a series', async () => {
+  const { element: el, events, writes } = await setup({ existing: { id: '1', title: '作品', volume_display_count: 5, checked_volumes: [] } });
+  assert.equal(el('editVolumeCount').value, 5);
+  await events['editForm:submit']({ preventDefault() {} });
+  assert.equal(writes[0][1].volume_display_count, 5);
+});
+
+test('preserves edits when cancelling discard and closes after confirmation', async () => {
+  const keep = await setup({ confirmResult: false });
+  keep.events['editCancelBtn:click']();
+  assert.equal(keep.element('editModal').style.display, 'flex');
+  assert.equal(keep.element('editTitle').value, '作品');
+  const discard = await setup({ confirmResult: true });
+  discard.events['editCancelBtn:click']();
+  assert.equal(discard.element('editModal').style.display, 'none');
+});
+
+test('warns before navigation only when edits exist', async () => {
+  const { events, element } = await setup();
+  let prevented = false;
+  events.beforeunload({ preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  element('editTitle').value = '';
+  prevented = false;
+  events.beforeunload({ preventDefault() { prevented = true; } });
+  assert.equal(prevented, false);
+});
 
 test('fills metadata and previews cover without writing before save', async () => {
   const { element: el, events, writes } = await setup();

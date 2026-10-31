@@ -11,6 +11,19 @@ const App = (() => {
   let loadedUserId; // 表示中の一覧が、どの利用者（未ログインは null）のものか
   let loadSeq = 0;
   let coverBatchRunning = false;
+  let initialEditState = null;
+
+  function editState() {
+    return JSON.stringify({
+      values: ["editTitle", "editIsbn", "editAuthor", "editCoverUrl", "editStatus", "editTotalVolumes", "editVolumeCount", "editSynopsis"].map(id => String(el(id).value)),
+      volumes: selectedVolumes(),
+      useCover: el("useCoverCandidate").checked,
+    });
+  }
+
+  function hasUnsavedChanges() {
+    return el("editModal").style.display === "flex" && initialEditState !== null && editState() !== initialEditState;
+  }
 
   function editMessage(text, error = false) {
     el("editMessage").textContent = text;
@@ -60,6 +73,9 @@ const App = (() => {
     el("loginCancelBtn").addEventListener("click", closeLoginModal);
     el("editForm").addEventListener("submit", onEditSubmit);
     el("editCancelBtn").addEventListener("click", closeEditModal);
+    el("editModal").addEventListener("click", e => { if (e.target === el("editModal")) closeEditModal(); });
+    window.addEventListener("keydown", e => { if (e.key === "Escape" && el("editModal").style.display === "flex") closeEditModal(); });
+    window.addEventListener("beforeunload", e => { if (hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ""; } });
     el("deleteBtn").addEventListener("click", onDeleteClick);
     el("fetchMetadataBtn").addEventListener("click", onFetchMetadataClick);
     el("editTitle").addEventListener("input", resetFetch);
@@ -245,20 +261,24 @@ const App = (() => {
       s?.volume_display_count || 0,
       s?.total_volumes || 0,
       checked.length ? Math.max(...checked) : 0,
-      10,
+      s?.volume_display_count ? 0 : 10,
     );
     renderVolumeChecks(checked);
     el("editSynopsis").value = s?.synopsis || "";
     el("deleteBtn").style.display = s ? "inline-block" : "none";
     el("editModal").style.display = "flex";
+    initialEditState = editState();
   }
 
-  function closeEditModal() {
+  function closeEditModal(force = false) {
     if (saving) return;
+    // Event listeners pass an event, so only an explicit true bypasses confirmation.
+    if (force !== true && hasUnsavedChanges() && !confirm("入力した変更を破棄しますか？")) return;
     resetFetch();
     el("editModal").style.display = "none";
     el("editForm").reset();
     editingId = null;
+    initialEditState = null;
   }
 
   async function onEditSubmit(e) {
@@ -296,7 +316,7 @@ const App = (() => {
         : await DB.insertSeries({ ...fields, id });
       if (error) throw new Error(error.message);
       saving = false;
-      closeEditModal();
+      closeEditModal(true);
       Util.showBanner("保存しました", "success");
       await load();
     } catch (error) {
@@ -435,7 +455,7 @@ const App = (() => {
     const { error } = await DB.deleteSeries(editingId);
     if (error) { Util.showBanner(`削除エラー: ${error.message}`, "error"); return; }
     const cover = await Covers.remove(coverUrl);
-    closeEditModal();
+    closeEditModal(true);
     Util.showBanner(cover.error ? "削除しました（表紙画像は消せませんでした）" : "削除しました", cover.error ? "error" : "success");
     await load();
   }
