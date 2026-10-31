@@ -9,13 +9,13 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="styles.css?v=mobile-shelf-1">
+<link rel="stylesheet" href="styles.css?v=accessibility-1">
 </head>
 <body>
 <header>
   <h1>📚 漫画本棚</h1>
   <div class="header-actions">
-    <input id="searchInput" type="text" placeholder="タイトル・作者で検索">
+    <input id="searchInput" type="text" placeholder="タイトル・作者で検索" aria-label="タイトル・作者で検索">
     <label class="completion-filter" for="completionFilter">表示
       <select id="completionFilter" aria-label="読了状況で絞り込む">
         <option value="active">未完のみ</option>
@@ -37,9 +37,9 @@
 </main>
 
 <!-- ログインモーダル -->
-<div id="loginModal" class="modal" style="display:none">
+<div id="loginModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
   <div class="modal-box">
-    <h2>ログイン</h2>
+    <h2 id="loginModalTitle">ログイン</h2>
     <form id="loginForm">
       <label>メールアドレス<input id="loginEmail" type="email" required></label>
       <label>パスワード<input id="loginPassword" type="password" required></label>
@@ -52,7 +52,7 @@
 </div>
 
 <!-- 追加・編集モーダル -->
-<div id="editModal" class="modal" style="display:none">
+<div id="editModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
   <div class="modal-box">
     <h2 id="editModalTitle">新規登録</h2>
     <form id="editForm">
@@ -110,6 +110,6 @@
 <script src="js/db.js?v=cleanup-3"></script>
 <script src="js/auth.js"></script>
 <script src="js/covers.js?v=cleanup-3"></script>
-<script src="js/app.js?v=volume-tap-1"></script>
+<script src="js/app.js?v=accessibility-1"></script>
 </body>
 </html>

@@ -121,6 +121,14 @@ test('can check or clear every displayed volume in one action', async () => {
   assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, false]);
 });
 
+test('cancelling the clear-all confirmation preserves checked volumes', async () => {
+  const { events, volumeInputs } = await setup({ confirmResult: false });
+  volumeInputs[0].checked = true;
+  volumeInputs[2].checked = true;
+  events['clearAllVolumesBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [true, false, true]);
+});
+
 test('updates the volume checkboxes after the displayed-volume count is confirmed', async () => {
   const { element: el, events } = await setup();
   el('editVolumeCount').value = '12';

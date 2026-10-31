@@ -12,6 +12,39 @@ const App = (() => {
   let loadSeq = 0;
   let coverBatchRunning = false;
   let initialEditState = null;
+  let previousFocus = null;
+
+  function focusModal(id, firstInput) {
+    previousFocus = document.activeElement;
+    el(id).style.display = "flex";
+    el(firstInput).focus?.();
+  }
+
+  function restoreFocus() {
+    previousFocus?.focus?.();
+    previousFocus = null;
+  }
+
+  function onModalKeydown(e) {
+    const modal = ["editModal", "loginModal"].map(el).find(node => node.style.display === "flex");
+    if (!modal) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (modal === el("editModal")) closeEditModal();
+      else closeLoginModal();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const controls = Array.from(modal.querySelectorAll('input:not([disabled]), textarea:not([disabled]), button:not([disabled]), select:not([disabled])'))
+      .filter(node => node.getClientRects().length);
+    if (!controls.length) return;
+    const first = controls[0], last = controls[controls.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
+  }
 
   function editState() {
     return JSON.stringify({
@@ -74,7 +107,7 @@ const App = (() => {
     el("editForm").addEventListener("submit", onEditSubmit);
     el("editCancelBtn").addEventListener("click", closeEditModal);
     el("editModal").addEventListener("click", e => { if (e.target === el("editModal")) closeEditModal(); });
-    window.addEventListener("keydown", e => { if (e.key === "Escape" && el("editModal").style.display === "flex") closeEditModal(); });
+    window.addEventListener("keydown", onModalKeydown);
     window.addEventListener("beforeunload", e => { if (hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ""; } });
     el("deleteBtn").addEventListener("click", onDeleteClick);
     el("fetchMetadataBtn").addEventListener("click", onFetchMetadataClick);
@@ -91,7 +124,10 @@ const App = (() => {
     el("editTotalVolumes").addEventListener("input", () => renderVolumeChecks());
     el("editTotalVolumes").addEventListener("change", () => renderVolumeChecks());
     el("checkAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(true));
-    el("clearAllVolumesBtn").addEventListener("click", () => setAllVolumeChecks(false));
+    el("clearAllVolumesBtn").addEventListener("click", () => {
+      if (selectedVolumes().length && !confirm("チェックをすべて外しますか？")) return;
+      setAllVolumeChecks(false);
+    });
 
     await load();
   }
@@ -193,7 +229,7 @@ const App = (() => {
     card.innerHTML = `
       <${coverTag} class="card-cover${loggedIn ? " edit-cover" : ""}"${loggedIn ? ` type="button" aria-label="${Util.escapeHtml(s.title)}を編集"` : ""}>
         ${s.cover_url
-          ? `<img class="cover-img" alt="">`
+          ? `<img class="cover-img" alt="${loggedIn ? "" : Util.escapeHtml(s.title) + "の表紙"}">`
           : `<div class="cover-placeholder">📖</div>`}
       </${coverTag}>
       <div class="card-body">
@@ -219,8 +255,8 @@ const App = (() => {
   }
 
   // --- ログイン ---
-  function openLoginModal() { el("loginModal").style.display = "flex"; }
-  function closeLoginModal() { el("loginModal").style.display = "none"; el("loginForm").reset(); }
+  function openLoginModal() { focusModal("loginModal", "loginEmail"); }
+  function closeLoginModal() { el("loginModal").style.display = "none"; el("loginForm").reset(); restoreFocus(); }
 
   async function onLoginSubmit(e) {
     e.preventDefault();
@@ -266,7 +302,7 @@ const App = (() => {
     renderVolumeChecks(checked);
     el("editSynopsis").value = s?.synopsis || "";
     el("deleteBtn").style.display = s ? "inline-block" : "none";
-    el("editModal").style.display = "flex";
+    focusModal("editModal", "editTitle");
     initialEditState = editState();
   }
 
@@ -279,6 +315,7 @@ const App = (() => {
     el("editForm").reset();
     editingId = null;
     initialEditState = null;
+    restoreFocus();
   }
 
   async function onEditSubmit(e) {
