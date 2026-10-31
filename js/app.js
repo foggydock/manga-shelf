@@ -334,16 +334,22 @@ const App = (() => {
     renderVolumeChecks();
   }
 
-  function renderVolumeChecks(checked = selectedVolumes(), keepVolumeInput = false) {
+  function renderVolumeChecks(checked, keepVolumeInput = false) {
+    const replaceSelection = checked !== undefined;
+    if (!replaceSelection) checked = selectedVolumes();
     const requested = parseInt(el("editVolumeCount").value, 10) || 1;
     const total = parseInt(el("editTotalVolumes").value, 10) || 0;
     const count = Math.min(Math.max(requested, total, checked.length ? Math.max(...checked) : 0), Util.MAX_VOLUMES);
     if (!keepVolumeInput) el("editVolumeCount").value = count;
     const selected = new Set(checked);
-    el("volumeChecks").innerHTML = Array.from({ length: count }, (_, index) => {
-      const volume = index + 1;
-      return `<label><input type="checkbox" value="${volume}"${selected.has(volume) ? " checked" : ""}>${volume}巻</label>`;
-    }).join("");
+    // 入力欄からチェック欄へ移る際、change イベントで同じ欄を作り直すと
+    // タップ先が消えて操作が届かない。件数が同じなら既存の欄を保つ。
+    if (replaceSelection || el("volumeChecks").querySelectorAll("input[type=checkbox]").length !== count) {
+      el("volumeChecks").innerHTML = Array.from({ length: count }, (_, index) => {
+        const volume = index + 1;
+        return `<label><input type="checkbox" value="${volume}"${selected.has(volume) ? " checked" : ""}>${volume}巻</label>`;
+      }).join("");
+    }
     el("volumeCountStatus").textContent = `1〜${count}巻のチェック欄を表示中`;
   }
 

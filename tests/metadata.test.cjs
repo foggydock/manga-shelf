@@ -136,6 +136,16 @@ test('updates volume checkboxes while typing without overwriting the typed numbe
   assert.match(el('volumeChecks').innerHTML, /12巻/);
 });
 
+test('keeps the existing checkboxes when the displayed count has not changed', async () => {
+  const { element: el, events, volumeInputs } = await setup();
+  volumeInputs[0].checked = true;
+  el('editVolumeCount').value = '3';
+  el('volumeChecks').innerHTML = 'existing checkboxes';
+  events['editVolumeCount:change']();
+  assert.equal(el('volumeChecks').innerHTML, 'existing checkboxes');
+  assert.equal(volumeInputs[0].checked, true);
+});
+
 test('saves the requested displayed-volume count with the series', async () => {
   const { element: el, events, writes } = await setup();
   el('editVolumeCount').value = '12';
