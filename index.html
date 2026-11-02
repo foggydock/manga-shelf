@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="styles.css?v=accessibility-1">
+<link rel="stylesheet" href="styles.css?v=volume-range-1">
 </head>
 <body>
 <header>
@@ -89,6 +89,16 @@
           <button type="button" id="checkAllVolumesBtn">すべてチェック</button>
           <button type="button" id="clearAllVolumesBtn">すべて外す</button>
         </div>
+        <div class="volume-range">
+          <label>開始巻<input id="volumeRangeStart" type="text" inputmode="numeric"></label>
+          <label>終了巻<input id="volumeRangeEnd" type="text" inputmode="numeric"></label>
+        </div>
+        <div class="volume-check-actions">
+          <button type="button" id="checkRangeBtn">範囲をチェック</button>
+          <button type="button" id="clearRangeBtn">範囲を外す</button>
+          <button type="button" id="jumpVolumeBtn">開始巻へ移動</button>
+        </div>
+        <p id="volumeRangeStatus" class="metadata-help" role="status" aria-live="polite"></p>
         <div id="volumeChecks" class="volume-checks"></div>
       </fieldset>
       <label>紹介文・あらすじ
@@ -110,6 +120,6 @@
 <script src="js/db.js?v=cleanup-3"></script>
 <script src="js/auth.js"></script>
 <script src="js/covers.js?v=cleanup-3"></script>
-<script src="js/app.js?v=accessibility-1"></script>
+<script src="js/app.js?v=volume-range-1"></script>
 </body>
 </html>

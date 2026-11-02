@@ -13,7 +13,7 @@ async function setup({ meta, cover, saveError, confirmResult = true, existing } 
   const events = {};
   const writes = [];
   const coverRequests = [];
-  const volumeInputs = [{ checked: false, value: '1' }, { checked: false, value: '2' }, { checked: false, value: '3' }];
+  const volumeInputs = [{ checked: false, value: '1', focus() { this.focused = true; } }, { checked: false, value: '2', focus() { this.focused = true; } }, { checked: false, value: '3', focus() { this.focused = true; } }];
   const element = id => {
     if (!elements.has(id)) elements.set(id, {
       value: '', style: {}, hidden: false, checked: false, disabled: false,
@@ -119,6 +119,41 @@ test('can check or clear every displayed volume in one action', async () => {
   assert.deepEqual(volumeInputs.map(input => input.checked), [true, true, true]);
   events['clearAllVolumesBtn:click']();
   assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, false]);
+});
+
+test('range actions affect only the specified volumes and reject invalid ranges', async () => {
+  const { element: el, events, volumeInputs } = await setup();
+  el('volumeRangeStart').value = '2'; el('volumeRangeEnd').value = '3';
+  events['checkRangeBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [false, true, true]);
+  events['jumpVolumeBtn:click']();
+  assert.equal(volumeInputs[1].focused, true);
+  el('volumeRangeEnd').value = '4';
+  events['clearRangeBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [false, true, true]);
+  assert.match(el('volumeRangeStatus').textContent, /範囲を入力/);
+  el('volumeRangeEnd').value = '2';
+  events['clearRangeBtn:click']();
+  assert.deepEqual(volumeInputs.map(input => input.checked), [false, false, true]);
+});
+
+test('cancelling range clear preserves checks', async () => {
+  const { element: el, events, volumeInputs } = await setup({ confirmResult: false });
+  volumeInputs[1].checked = true;
+  el('volumeRangeStart').value = '2'; el('volumeRangeEnd').value = '3';
+  events['clearRangeBtn:click']();
+  assert.equal(volumeInputs[1].checked, true);
+});
+
+test('interprets exponent notation consistently when displaying and saving counts', async () => {
+  const { element: el, events, writes } = await setup();
+  el('editVolumeCount').value = '1e2';
+  events['editVolumeCount:input']();
+  assert.match(el('volumeChecks').innerHTML, /100巻/);
+  el('editTotalVolumes').value = '1e2';
+  await events['editForm:submit']({ preventDefault() {} });
+  assert.equal(writes[0][1].volume_display_count, 100);
+  assert.equal(writes[0][1].total_volumes, 100);
 });
 
 test('cancelling the clear-all confirmation preserves checked volumes', async () => {

@@ -128,6 +128,9 @@ const App = (() => {
       if (selectedVolumes().length && !confirm("チェックをすべて外しますか？")) return;
       setAllVolumeChecks(false);
     });
+    el("checkRangeBtn").addEventListener("click", () => setVolumeRange(true));
+    el("clearRangeBtn").addEventListener("click", () => setVolumeRange(false));
+    el("jumpVolumeBtn").addEventListener("click", jumpToVolume);
 
     await load();
   }
@@ -288,6 +291,9 @@ const App = (() => {
     el("editModalTitle").textContent = s ? "編集" : "新規登録";
     el("editTitle").value = s?.title || "";
     el("editIsbn").value = "";
+    el("volumeRangeStart").value = "";
+    el("volumeRangeEnd").value = "";
+    el("volumeRangeStatus").textContent = "";
     el("editAuthor").value = s?.author || "";
     el("editCoverUrl").value = s?.cover_url || "";
     el("editStatus").value = s?.status || "";
@@ -325,8 +331,8 @@ const App = (() => {
       author: el("editAuthor").value.trim() || null,
       cover_url: el("editCoverUrl").value.trim() || null,
       status: el("editStatus").value.trim() || null,
-      total_volumes: el("editTotalVolumes").value ? parseInt(el("editTotalVolumes").value, 10) : null,
-      volume_display_count: parseInt(el("editVolumeCount").value, 10),
+      total_volumes: el("editTotalVolumes").value ? Number(el("editTotalVolumes").value) : null,
+      volume_display_count: el("editVolumeCount").value ? Number(el("editVolumeCount").value) : NaN,
       checked_volumes: selectedVolumes(),
       synopsis: el("editSynopsis").value.trim() || null,
     };
@@ -367,15 +373,16 @@ const App = (() => {
 
   function stepVolumeCount(delta) {
     const input = el("editVolumeCount");
-    input.value = Math.min(Util.MAX_VOLUMES, Math.max(1, (parseInt(input.value, 10) || 1) + delta));
+    input.value = Math.min(Util.MAX_VOLUMES, Math.max(1, (Number(input.value) || 1) + delta));
     renderVolumeChecks();
   }
 
   function renderVolumeChecks(checked, keepVolumeInput = false) {
     const replaceSelection = checked !== undefined;
     if (!replaceSelection) checked = selectedVolumes();
-    const requested = parseInt(el("editVolumeCount").value, 10) || 1;
-    const total = parseInt(el("editTotalVolumes").value, 10) || 0;
+    const requested = Number(el("editVolumeCount").value) || 1;
+    const total = Number(el("editTotalVolumes").value) || 0;
+    if (!Number.isInteger(requested) || !Number.isInteger(total)) return;
     const count = Math.min(Math.max(requested, total, checked.length ? Math.max(...checked) : 0), Util.MAX_VOLUMES);
     if (!keepVolumeInput) el("editVolumeCount").value = count;
     const selected = new Set(checked);
@@ -399,6 +406,33 @@ const App = (() => {
   function setAllVolumeChecks(checked) {
     el("volumeChecks").querySelectorAll("input[type=checkbox]")
       .forEach(input => { input.checked = checked; });
+  }
+
+  function volumeRange(requireEnd) {
+    const start = Number(el("volumeRangeStart").value);
+    const end = requireEnd ? Number(el("volumeRangeEnd").value) : start;
+    const inputs = Array.from(el("volumeChecks").querySelectorAll("input[type=checkbox]"));
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start || end > inputs.length) {
+      el("volumeRangeStatus").textContent = `表示中の1〜${inputs.length}巻の範囲を入力してください。`;
+      return null;
+    }
+    return { start, end, inputs };
+  }
+
+  function setVolumeRange(checked) {
+    const range = volumeRange(true);
+    if (!range) return;
+    const targets = range.inputs.slice(range.start - 1, range.end);
+    if (!checked && targets.some(input => input.checked) && !confirm(`${range.start}〜${range.end}巻のチェックを外しますか？`)) return;
+    targets.forEach(input => { input.checked = checked; });
+    el("volumeRangeStatus").textContent = `${range.start}〜${range.end}巻のチェックを${checked ? "入れました" : "外しました"}。`;
+  }
+
+  function jumpToVolume() {
+    const range = volumeRange(false);
+    if (!range) return;
+    range.inputs[range.start - 1].focus();
+    el("volumeRangeStatus").textContent = `${range.start}巻へ移動しました。`;
   }
 
   async function onFetchCoversClick() {
